@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, SIN_BACKEND, SIN_SESION, type Yo } from './servicios/api';
 import type { DatosModelo } from './motor';
 import { MODO_NAVEGADOR } from './modo';
-import { leerModeloGuardado } from './servicios/almacen';
+import { guardarModelo, leerModeloGuardado } from './servicios/almacen';
+import { fuenteModelo, urlFuente } from './servicios/enlace';
+import { validarModelo } from './componentes/MiModelo';
 import Panel from './componentes/Panel';
 import Cabecera from './componentes/Cabecera';
 import Datos from './componentes/Datos';
@@ -15,9 +17,21 @@ export default function App() {
   return MODO_NAVEGADOR ? <AppNavegador /> : <AppServidor />;
 }
 
-/** Versión sin servidor: modelo guardado en el navegador o, si no hay, el de demostración. */
+/** Versión sin servidor: modelo del enlace compartido, el guardado en el navegador o, si no hay, el de demostración. */
 function AppNavegador() {
   const cargar = useCallback(async (): Promise<DatosModelo> => {
+    const fuente = fuenteModelo();
+    const url = fuente && urlFuente(fuente);
+    if (url) {
+      // se descarga cada vez para tener la última versión; sin conexión se usa la copia guardada
+      try {
+        const r = await fetch(url, { cache: 'no-cache' });
+        if (r.ok) {
+          const texto = await r.text();
+          if (!validarModelo(JSON.parse(texto))) { await guardarModelo(texto); return JSON.parse(texto); }
+        }
+      } catch { /* sin conexión */ }
+    }
     const propio = await leerModeloGuardado();
     if (propio) return JSON.parse(propio);
     const r = await fetch(demoUrl);

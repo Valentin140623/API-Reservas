@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { borrarModelo, guardarModelo, leerModeloGuardado } from '../servicios/almacen';
 import type { DatosModelo } from '../motor';
+import { fuenteModelo, olvidarFuente } from '../servicios/enlace';
 
 /** Validación mínima de un fichero de modelo. Devuelve el error o null. */
 export function validarModelo(d: Partial<DatosModelo>): string | null {
@@ -34,6 +35,7 @@ export default function MiModelo({ onCambio }: { onCambio: () => void }) {
       const fallo = validarModelo(JSON.parse(texto));
       if (fallo) return setError(fallo);
       await guardarModelo(texto);
+      olvidarFuente();
       await leer();
       setMensaje('✓ Modelo cargado. Ya puedes ver tu previsión en «Previsión».');
       onCambio();
@@ -43,6 +45,7 @@ export default function MiModelo({ onCambio }: { onCambio: () => void }) {
   };
 
   const quitar = async () => {
+    olvidarFuente();
     await borrarModelo();
     await leer();
     setMensaje('Se ha quitado tu modelo de este dispositivo. Vuelves a ver la demostración.');
@@ -73,7 +76,8 @@ export default function MiModelo({ onCambio }: { onCambio: () => void }) {
         {propio ? (
           <>
             <div className="turno"><div className="t">Usando el modelo de</div><div className="v">{propio.nombre}</div>
-              <div className="d">aprendido hasta el {propio.hasta.split('-').reverse().join('-')}</div></div>
+              <div className="d">aprendido hasta el {propio.hasta.split('-').reverse().join('-')}
+                {fuenteModelo() && ' · se actualiza solo desde el enlace compartido'}</div></div>
             <button style={{ marginTop: 14 }} onClick={quitar}>Quitar mi modelo y volver a la demostración</button>
           </>
         ) : (
