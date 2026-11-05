@@ -9,7 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "extraer": "node scripts/extraer-datos.mjs original/Prevision_reservas_restaurante.html public/modelo/restaurante.json",
+    "extraer": "node scripts/extraer-datos.mjs original/Prevision_reservas_restaurante.html backend/modelos/restaurante.json",
     "fixture": "node scripts/generar-fixture.mjs original/Prevision_reservas_restaurante.html src/motor/__fixtures__/original.json"
   },
   "dependencies": {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, type DiaResumen, type Estado, type ResultadoImportacion } from '../servicios/api';
+import { api, SIN_BACKEND, SIN_SESION, type DiaResumen, type Estado, type ResultadoImportacion } from '../servicios/api';
 import { DIAS_C, dsem, fmt, isoHoy, sumar } from '../motor';
 
 const fechaEs = (s: string | null) => (s ? s.split('-').reverse().join('-') : '—');
@@ -38,7 +38,7 @@ export default function Datos() {
     }
   };
 
-  if (error === 'SIN_BACKEND')
+  if (error === SIN_BACKEND)
     return (
       <section className="card">
         <h2>Datos</h2>
@@ -65,7 +65,7 @@ export default function Datos() {
           <button className="primario" disabled={!ficheros.length || subiendo} onClick={subir}>
             {subiendo ? 'Importando…' : `Importar ${ficheros.length || ''} fichero${ficheros.length === 1 ? '' : 's'}`}
           </button>
-          {error && <div className="aviso">{error}</div>}
+          {error && <div className="aviso">{error === SIN_SESION ? 'La sesión ha caducado. Recarga la página y vuelve a entrar.' : error}</div>}
           {resultado && (
             <div className="chips">
               {resultado.map(r => (

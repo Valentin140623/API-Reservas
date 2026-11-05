@@ -35,15 +35,15 @@ npm run build     # genera la web estática en dist/
 ## Estructura
 
 ```
-public/modelo/restaurante.json   Modelo + calendario + histórico (sacado del HTML original)
+backend/modelos/restaurante.json Modelo + calendario + histórico (solo se sirve con sesión iniciada)
 src/motor/                 Lógica de previsión pura (sin interfaz), con tests
 src/componentes/           Pantallas en React
 src/servicios/tiempo.ts    Previsión del tiempo (Open-Meteo)
-src/config.ts              Datos del restaurante (nombre, ubicación, modelo)
 src/componentes/Datos.tsx  Pestaña "Datos": subir los CSV de CoverManager
 backend/app/importar.py    Lectura de los CSV de CoverManager
 backend/app/resumen.py     Resumen diario (cuántos vinieron por turno, reservadas, eventos, cerrado)
-backend/app/main.py        API: /api/importar, /api/estado, /api/dias
+backend/app/main.py        API: login, modelo, importar, estado, días
+backend/app/seguridad.py   Contraseñas (scrypt) y cookie de sesión firmada
 backend/datos.db           Base de datos local (SQLite; no se sube a GitHub)
 scripts/                   Extraer el modelo del HTML y generar los casos de prueba
 original/                  HTML original, como referencia
@@ -53,10 +53,23 @@ Si llega un HTML nuevo con el modelo reentrenado:
 
 ```bash
 cp NUEVO.html original/Prevision_reservas_restaurante.html
-npm run extraer   # actualiza public/modelo/restaurante.json
+npm run extraer   # actualiza backend/modelos/restaurante.json
 npm run fixture   # regenera los casos de prueba
 npm test
 ```
+
+## Cuentas
+
+La primera vez que abres la web te pide **crear la primera cuenta** (restaurante, email y contraseña).
+Después ya solo se puede entrar; nadie más puede registrarse. Para añadir otro usuario al mismo restaurante:
+
+```bash
+cd backend
+.venv\Scripts\python -m app.crear_usuario otra@persona.com
+```
+
+Todo (modelo, reservas, resumen) se filtra por el restaurante del usuario, así que cuando haya
+más restaurantes cada uno verá solo lo suyo. La sesión dura 30 días.
 
 ## Datos de CoverManager
 
@@ -79,18 +92,17 @@ Con los CSV de restaurante coinciden el 98 % de los días en "vinieron" y el 99,
 
 La web es estática: cualquier hosting sirve (**Vercel** o **Netlify**: comando de build `npm run build`,
 carpeta `dist`). El backend se despliega aparte (Render, Railway, Fly.io...) con una base PostgreSQL:
-basta con poner la variable `DATABASE_URL`. Esto lo montaremos cuando haya inicio de sesión.
+basta con poner la variable `DATABASE_URL`. 
 
-> ⚠️ `public/modelo/restaurante.json` contiene el histórico real del restaurante. Mientras no haya
-> inicio de sesión (paso 3), cualquiera con el enlace puede verlo. Usa un repositorio
-> **privado** y no compartas el enlace fuera del equipo.
+> ⚠️ `backend/modelos/restaurante.json` contiene el histórico real del restaurante: usa un repositorio
+> **privado**. En producción pon `SECRET_KEY` (una clave larga aleatoria) y `COOKIE_SEGURA=1`.
 
 ## Hoja de ruta
 
 1. **Proyecto base** ✅ — el HTML convertido en app (React + TypeScript + Vite), con tests y CI.
 2. **Datos reales del día a día** ✅ — backend (Python + FastAPI + SQLite/PostgreSQL) que importa
    los CSV de CoverManager y calcula el resumen diario.
-3. **Cuentas y acceso** — inicio de sesión; cada usuario solo ve su restaurante.
+3. **Cuentas y acceso** ✅ — inicio de sesión; cada usuario solo ve su restaurante.
 4. **Reentrenamiento automático** — el modelo LightGBM se reentrena solo con los datos nuevos.
 5. **Multi-restaurante y comercialización** — alta de nuevos locales (ubicación, festivos),
    planes de pago (Stripe), integración con programas de reservas.

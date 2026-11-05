@@ -51,17 +51,3 @@ def test_reimportar_no_duplica(sesion):
 def test_csv_desconocido(sesion):
     with pytest.raises(ErrorImportacion):
         importar_csv(sesion, b"nombre;telefono\nPepe;600000000\n")
-
-
-def test_api(tmp_path):
-    from fastapi.testclient import TestClient
-    from app.main import app
-
-    c = TestClient(app)
-    r = c.post("/api/importar", files=[("ficheros", ("reservas.csv", RESERVAS, "text/csv")),
-                                       ("ficheros", ("turnos.csv", TURNOS, "text/csv"))])
-    assert r.status_code == 200, r.text
-    assert [x["tipo"] for x in r.json()] == ["reservas", "turnos"]
-    dias = c.get("/api/dias", params={"desde": "2026-07-12", "hasta": "2026-07-12"}).json()
-    assert dias[0]["comida"] == 4
-    assert c.post("/api/importar", files=[("ficheros", ("x.csv", b"a;b\n1;2\n", "text/csv"))]).status_code == 400

@@ -1,4 +1,4 @@
-// Forma del fichero de modelo (public/modelo/*.json), tal como lo genera el entrenamiento.
+// Forma del fichero de modelo (backend/modelos/*.json), tal como lo genera el entrenamiento.
 
 /** Nodo de árbol LightGBM exportado: [feature, umbral, izquierdaPorDefecto, tipoMissing, izq, der] u hoja (número). */
 export type Nodo = number | [number, number, number, 'None' | 'NaN' | 'Zero', Nodo, Nodo];

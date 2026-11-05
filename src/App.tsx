@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { RESTAURANTE } from './config';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { api, SIN_BACKEND, SIN_SESION, type Yo } from './servicios/api';
 import { isoHoy, sumar, type DatosModelo, type Tiempo } from './motor';
 import { cargarTiempo } from './servicios/tiempo';
 import { guardar, recuperar } from './memoria';
@@ -8,8 +8,46 @@ import Resultado from './componentes/Resultado';
 import ProximosDias from './componentes/ProximosDias';
 import InfoModelo from './componentes/InfoModelo';
 import Datos from './componentes/Datos';
+import Entrar from './componentes/Entrar';
+import SinBackend from './componentes/SinBackend';
+
+type Acceso = 'comprobando' | 'fuera' | 'dentro' | 'sin-backend';
 
 export default function App() {
+  const [acceso, setAcceso] = useState<Acceso>('comprobando');
+  const [yo, setYo] = useState<Yo | null>(null);
+  const comprobar = useCallback(() => {
+    setAcceso('comprobando');
+    api.yo()
+      .then(y => { setYo(y); setAcceso('dentro'); })
+      .catch(e => setAcceso(e.message === SIN_BACKEND ? 'sin-backend' : 'fuera'));
+  }, []);
+  useEffect(comprobar, [comprobar]);
+  const sinBackend = useCallback(() => setAcceso('sin-backend'), []);
+  const sinSesion = useCallback(() => { setYo(null); setAcceso('fuera'); }, []);
+  const salir = () => { api.logout().finally(() => { setYo(null); setAcceso('fuera'); }); };
+
+  const cabecera = (
+    <header><div className="wrap">
+      <h1>Previsión de reservas</h1>
+      <p>Previsión de comensales</p>
+    </div></header>
+  );
+  if (acceso !== 'dentro')
+    return (
+      <>
+        {cabecera}
+        <main><div className="wrap">
+          {acceso === 'comprobando' && <div className="cargando">Cargando…</div>}
+          {acceso === 'sin-backend' && <SinBackend onReintentar={comprobar} />}
+          {acceso === 'fuera' && <Entrar onDentro={y => { setYo(y); setAcceso('dentro'); }} onSinBackend={sinBackend} />}
+        </div></main>
+      </>
+    );
+  return <Panel yo={yo!} onSalir={salir} onSinSesion={sinSesion} />;
+}
+
+function Panel({ yo, onSalir, onSinSesion }: { yo: Yo; onSalir: () => void; onSinSesion: () => void }) {
   const hoy = useMemo(() => isoHoy(), []);
   const [datos, setDatos] = useState<DatosModelo | null>(null);
   const [error, setError] = useState('');
@@ -26,12 +64,11 @@ export default function App() {
   const [consulta, setConsulta] = useState({ f: fecha, rc, rn });
 
   useEffect(() => {
-    fetch(import.meta.env.BASE_URL + RESTAURANTE.modelo)
-      .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+    api.modelo()
       .then(setDatos)
-      .catch(e => setError(`No se ha podido cargar el modelo (${e.message}).`));
-    cargarTiempo(RESTAURANTE.lat, RESTAURANTE.lon).then(setTiempo);
-  }, []);
+      .catch(e => (e.message === SIN_SESION ? onSinSesion() : setError(`No se ha podido cargar el modelo: ${e.message}`)));
+    cargarTiempo(yo.restaurante.lat, yo.restaurante.lon).then(setTiempo);
+  }, [yo, onSinSesion]);
 
   useEffect(() => { guardar(consulta); }, [consulta]);
 
@@ -41,10 +78,11 @@ export default function App() {
     <>
       <header><div className="wrap">
         <h1>Previsión de reservas</h1>
-        <p>{RESTAURANTE.nombre} · personas por día, sin contar eventos</p>
+        <p>{yo.restaurante.nombre} · personas por día, sin contar eventos</p>
         <nav className="pestanas">
           <button className={pestana === 'prevision' ? 'activa' : ''} onClick={() => setPestana('prevision')}>Previsión</button>
           <button className={pestana === 'datos' ? 'activa' : ''} onClick={() => setPestana('datos')}>Datos</button>
+          <button onClick={onSalir} title={yo.email}>Salir</button>
         </nav>
       </div></header>
       <main><div className="wrap">

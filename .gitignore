@@ -7,3 +7,4 @@ backend/.venv/
 backend/datos.db
 __pycache__/
 .pytest_cache/
+backend/.clave
