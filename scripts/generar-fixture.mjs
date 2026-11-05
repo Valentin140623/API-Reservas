@@ -1,19 +1,13 @@
-// Ejecuta el motor ORIGINAL del HTML (sin tocarlo) con un "hoy" fijo y guarda sus resultados.
+// Ejecuta el motor ORIGINAL (scripts/motor-original.js) con un modelo y un "hoy" fijo y guarda sus resultados.
 // Los tests comparan el motor nuevo contra esto para garantizar que da exactamente lo mismo.
-// Uso: node scripts/generar-fixture.mjs <original.html> <salida.json>
+// Uso: node scripts/generar-fixture.mjs <modelo.json> <salida.json>
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import vm from 'node:vm';
 
-const [, , entrada, salida] = process.argv;
-const html = readFileSync(entrada, 'utf8');
-const datos = html.match(/<script id="datos" type="application\/json">([\s\S]*?)<\/script>/)[1];
-const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).join('\n');
-// Nos quedamos con el motor (hasta el pintado de la interfaz) y quitamos la llamada al tiempo.
-let motor = scripts.slice(0, scripts.indexOf('// ---- pintar resultado'));
-motor = motor.replace(/fetch\([\s\S]*?\.catch\(\(\) => \{\}\);/, '');
-motor = motor.replace(/const isoHoy = \(\) => \{[^\n]*\n/, 'const isoHoy = () => __HOY__;\n');
-motor = motor.replace("JSON.parse(document.getElementById('datos').textContent)", 'JSON.parse(__DATOS__)');
+const [, , modelo, salida] = process.argv;
+const datos = readFileSync(modelo, 'utf8');
+const motor = readFileSync(new URL('./motor-original.js', import.meta.url), 'utf8');
 
 const HOY = '2026-11-05';
 const ctx = vm.createContext({ __DATOS__: datos, __HOY__: HOY, Math, Date, Object, Array, Number, JSON, String, Set, console });

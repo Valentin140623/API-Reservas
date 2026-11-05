@@ -1,20 +1,42 @@
 # Previsión de comensales
 
-App web que predice cuántas personas vendrán a un restaurante cada día (comida y cena),
-con o sin las reservas ya apuntadas. Primer cliente: **Mi restaurante**.
+App web que predice cuántas personas vendrán a un restaurante cada día, a comida y a cena,
+con o sin las reservas ya apuntadas. Aprende del histórico de reservas que exporta
+**CoverManager** y usa modelos **LightGBM**.
 
-Es la versión "de verdad" del HTML original (`original/Prevision_reservas_restaurante.html`):
-mismo modelo (árboles LightGBM exportados) y mismos resultados, pero organizada como un
-proyecto que se puede mantener, probar y desplegar.
+**Pruébala:** https://valentin140623.github.io/Prevision-de-Reservas-api/. Abre un restaurante de
+demostración con datos inventados. En el móvil se puede añadir a la pantalla de inicio y se abre como una app.
 
-## Arrancar en local
+## Dos formas de usarla
 
-Necesitas [Node.js](https://nodejs.org/) (LTS) y [Python 3.12 o superior](https://www.python.org/downloads/).
+| | Versión sin servidor (GitHub Pages) | Versión completa (con servidor) |
+|---|---|---|
+| Para qué | Ver la previsión en el móvil, pasársela a un compañero | Llevar el restaurante: importar datos, reentrenar |
+| Instalar | Nada: es un enlace | Node.js + Python, o desplegar en Render |
+| Previsión por día y turno | ✅ | ✅ |
+| Importar CSV de CoverManager | — | ✅ |
+| Reentrenar el modelo | — | ✅ (automático al importar) |
+| Cuentas e inicio de sesión | — | ✅ |
+| Tus datos | Solo en tu dispositivo | En tu base de datos |
 
-**En Windows, lo fácil:** doble clic en `iniciar.bat`. La primera vez instala todo; después abre
-el servidor de datos, la web y el navegador en http://localhost:5173.
+**Llevar tu modelo al móvil:** en la versión completa, ve a *Datos* → **Descargar modelo para el móvil**.
+Pásate el `.json` (por WhatsApp, correo...), abre el enlace de GitHub Pages en el móvil, entra en
+*Mi modelo* y cárgalo. Se guarda solo en ese dispositivo, nunca se sube a ningún sitio.
 
-A mano (dos terminales):
+## Privacidad
+
+En este repositorio **no hay datos reales**. Lo único que hay es `backend/modelos/demo.json`, entrenado con
+reservas inventadas por `backend/scripts/crear_modelo_demo.py`. Git ignora los modelos reales, los CSV,
+la base de datos y la clave de sesiones (`.gitignore`), así que no se suben aunque estén en tu carpeta.
+
+## Arrancar la versión completa en local
+
+Necesitas [Node.js](https://nodejs.org/) (LTS) y [Python 3.13](https://www.python.org/downloads/).
+
+**En Windows:** doble clic en `iniciar.bat`. La primera vez lo instala todo; después abre el servidor
+de datos, la web y el navegador en http://localhost:5173.
+
+A mano, con dos terminales:
 
 ```bash
 # terminal 1: servidor de datos (API)
@@ -24,53 +46,15 @@ python -m venv .venv
 .venv\Scripts\uvicorn app.main:app --reload       # http://localhost:8000/docs
 
 # terminal 2: web
-
-```bash
 npm install
-npm run dev       # abre http://localhost:5173
-npm test          # comprueba que el motor da lo mismo que el HTML original
-npm run build     # genera la web estática en dist/
+npm run dev                                       # http://localhost:5173
 ```
 
-## Estructura
+La primera vez te pide **crear la primera cuenta** (restaurante, email y contraseña). El restaurante
+empieza con el modelo de demostración. En cuanto importas tus CSV, se entrena uno con tus datos.
 
-```
-backend/modelos/restaurante.json Modelo + calendario + histórico (solo se sirve con sesión iniciada)
-src/motor/                 Lógica de previsión pura (sin interfaz), con tests
-src/componentes/           Pantallas en React
-src/servicios/tiempo.ts    Previsión del tiempo (Open-Meteo)
-src/componentes/Datos.tsx  Pestaña "Datos": subir los CSV de CoverManager
-backend/app/importar.py    Lectura de los CSV de CoverManager
-backend/app/resumen.py     Resumen diario (cuántos vinieron por turno, reservadas, eventos, cerrado)
-backend/app/main.py        API: login, modelo, importar, estado, días
-backend/app/seguridad.py   Contraseñas (scrypt) y cookie de sesión firmada
-backend/app/entrenar.py    Reentrenamiento del modelo (LightGBM)
-backend/datos.db           Base de datos local (SQLite; no se sube a GitHub)
-scripts/                   Extraer el modelo del HTML y generar los casos de prueba
-original/                  HTML original, como referencia
-```
-
-Si llega un HTML nuevo con el modelo reentrenado:
-
-```bash
-cp NUEVO.html original/Prevision_reservas_restaurante.html
-npm run extraer   # actualiza backend/modelos/restaurante.json
-npm run fixture   # regenera los casos de prueba
-npm test
-```
-
-## Cuentas
-
-La primera vez que abres la web te pide **crear la primera cuenta** (restaurante, email y contraseña).
-Después ya solo se puede entrar; nadie más puede registrarse. Para añadir otro usuario al mismo restaurante:
-
-```bash
-cd backend
-.venv\Scripts\python -m app.crear_usuario otra@persona.com
-```
-
-Todo (modelo, reservas, resumen) se filtra por el restaurante del usuario, así que cuando haya
-más restaurantes cada uno verá solo lo suyo. La sesión dura 30 días.
+Para usar un modelo propio como punto de partida, ponlo en `backend/modelos/` y arranca con
+`MODELO_INICIAL=mi_modelo.json`. Git no lo subirá.
 
 ## Datos de CoverManager
 
@@ -79,43 +63,44 @@ En la pestaña **Datos** se suben los dos informes que exporta CoverManager:
 - **Reservas** (`report_reserv_stats_basic.csv`): una fila por reserva, con estado y fecha en que se hizo.
 - **Personas por turno** (`report_persons_turn_days.csv`): personas reservadas y capacidad por día y turno.
 
-Se pueden subir tantas veces como quieras: las fechas que cubre el fichero se sustituyen, no se duplican.
-Para comprobar las reglas contra el histórico del HTML original:
-
-```bash
-cd backend
-.venv/bin/python scripts/comparar_historico.py ../original/Prevision_reservas_restaurante.html reservas.csv turnos.csv
-```
-
-Con los CSV de restaurante coinciden el 98 % de los días en "vinieron" y el 99,9 % en "reservadas".
+Puedes subirlos tantas veces como quieras: las fechas que cubre el fichero se sustituyen, no se duplican.
+"Vinieron" cuenta las reservas sentadas, llegadas o confirmadas. Los eventos (50 personas o más) van aparte.
 
 ## Reentrenar el modelo
 
-Cada vez que importas CSV en la pestaña **Datos**, el modelo se reentrena solo (tarda unos segundos);
-también hay un botón **Reentrenar ahora**. Lo hace `backend/app/entrenar.py`:
+Cada vez que importas CSV, el modelo se reentrena solo en unos segundos. También hay un botón
+**Reentrenar ahora**. Lo hace `backend/app/entrenar.py`:
 
-- 4 modelos LightGBM, como el original: comida y cena, con y sin reservas ya apuntadas.
+- Hay 4 modelos LightGBM: comida y cena, con y sin reservas ya apuntadas.
 - El error se mide entrenando sin los últimos 6 meses y comparando con lo que vino de verdad.
 - Si el modelo nuevo se equivoca más de un 15 % que el actual, se mantiene el actual.
-- Cada modelo se guarda como `backend/modelos/r<restaurante>-<fecha>-<n>.json` y los anteriores se conservan.
+- Los modelos se guardan en la base de datos y los anteriores se conservan.
 
-Con los CSV de restaurante el error queda igual que el del modelo original (±26 personas/día sin reservas,
-±15 con reservas a 1 día).
+## Estructura
 
-## Publicar en internet
+```
+src/motor/                 Lógica de previsión (sin interfaz), con tests
+src/componentes/           Pantallas en React
+src/modo.ts                Versión sin servidor (VITE_MODO=navegador) o completa
+backend/app/main.py        API: cuentas, modelo, importar, reentrenar; sirve también la web
+backend/app/importar.py    Lectura de los CSV de CoverManager
+backend/app/resumen.py     Resumen diario (cuántos vinieron por turno, reservadas, eventos, cerrado)
+backend/app/entrenar.py    Reentrenamiento (LightGBM)
+backend/app/seguridad.py   Contraseñas (scrypt) y cookie de sesión firmada
+backend/modelos/demo.json  Modelo de demostración (datos inventados)
+scripts/motor-original.js  Motor del prototipo original; los tests comprueban que la app da lo mismo
+```
 
-En producción todo va en **un solo servidor**: la API sirve también la web ya compilada, así que
-hay un único enlace. Se usa la imagen `Dockerfile` y una base de datos PostgreSQL
-(los modelos reentrenados se guardan en la base de datos, no en disco).
+Tests: `npm test` (web) y `cd backend && .venv/bin/python -m pytest` (servidor).
 
-Con **Render** (https://render.com), usando `render.yaml`:
+## Publicar
 
-1. Crea una cuenta en Render entrando con GitHub.
-2. **New → Blueprint** y elige este repositorio. Render lee `render.yaml` y crea la web y la base de datos.
-3. Te pedirá `PRIMER_EMAIL`: pon tu email. Solo ese email podrá crear la primera cuenta.
-4. Cuando termine, abre el enlace (`https://prevision-comensales.onrender.com` o parecido), crea tu cuenta e importa los CSV.
+**Versión sin servidor (gratis, GitHub Pages).** Ve a *Settings → Pages → Source: GitHub Actions*.
+Cada `git push` a `main` la vuelve a publicar con `.github/workflows/pages.yml`.
 
-Cada `git push` a `main` vuelve a desplegar solo. Variables que usa el servidor:
+**Versión completa en internet (Render).** Ve a *New → Blueprint* y elige este repositorio. `render.yaml` crea
+el servidor (`Dockerfile`) y una base PostgreSQL. Cuando lo pida, pon tu email en `PRIMER_EMAIL`:
+así solo tú puedes crear la primera cuenta.
 
 | Variable | Para qué |
 |---|---|
@@ -123,20 +108,14 @@ Cada `git push` a `main` vuelve a desplegar solo. Variables que usa el servidor:
 | `SECRET_KEY` | firma de las sesiones (Render la genera) |
 | `COOKIE_SEGURA=1` | la cookie solo viaja por https |
 | `PRIMER_EMAIL` | único email que puede crear la primera cuenta |
-
-Desde el móvil, en el navegador: **Compartir → Añadir a pantalla de inicio** (iPhone) o
-**⋮ → Instalar app** (Android) y se abre como una app normal.
-
-> ⚠️ `backend/modelos/restaurante.json` contiene el histórico real del restaurante: mantén el repositorio **privado**.
+| `MODELO_INICIAL` | modelo de partida (por defecto `demo.json`) |
 
 ## Hoja de ruta
 
-1. **Proyecto base** ✅ — el HTML convertido en app (React + TypeScript + Vite), con tests y CI.
-2. **Datos reales del día a día** ✅ — backend (Python + FastAPI + SQLite/PostgreSQL) que importa
-   los CSV de CoverManager y calcula el resumen diario.
-3. **Cuentas y acceso** ✅ — inicio de sesión; cada usuario solo ve su restaurante.
-4. **Reentrenamiento automático** ✅ — el modelo LightGBM se reentrena solo con los datos nuevos.
-5. **Publicarla en internet** ✅ — un enlace, sin instalar nada; instalable en el móvil.
-6. **Alta de otros restaurantes** — que cualquiera pueda registrarse con su local (ubicación,
-   festivos) y su modelo se entrene con sus propios CSV.
-7. **Comercialización** — planes de pago (Stripe), integración directa con CoverManager.
+1. ✅ Prototipo HTML convertido en app (React + TypeScript + Vite), con tests y CI.
+2. ✅ Importar los CSV de CoverManager (FastAPI + SQLite/PostgreSQL).
+3. ✅ Cuentas: cada usuario solo ve su restaurante.
+4. ✅ Reentrenamiento automático.
+5. ✅ Lista para internet (un servidor, Docker, Render) y versión sin servidor para el móvil.
+6. Alta de otros restaurantes con su ubicación y sus festivos.
+7. Comercialización: planes de pago, integración directa con CoverManager.

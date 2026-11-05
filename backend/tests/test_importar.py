@@ -14,7 +14,7 @@ RESERVAS = """﻿Fecha;Estado;Turno;Personas;Fecha Añadida
 2026-07-13;Confirmada;Comida;2;2026-07-11
 """.encode()
 
-TURNOS = """﻿;;"Mi restaurante";"Capacidad máxima";"% Ocupación"
+TURNOS = """﻿;;"Mi Restaurante";"Capacidad máxima";"% Ocupación"
 12-07-2026;Comida;70;253;28%
 12-07-2026;Cena;5;253;2%
 13-07-2026;Comida;0;0;0%

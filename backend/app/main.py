@@ -46,6 +46,8 @@ class Credenciales(BaseModel):
 
 class Registro(Credenciales):
     restaurante: str = "Mi restaurante"
+    lat: float = 41.39  # para la previsión del tiempo (por defecto, Barcelona)
+    lon: float = 2.17
 
 
 # Freno sencillo contra quien prueba contraseñas: 10 fallos por email cada 15 minutos.
@@ -92,7 +94,8 @@ def registro(datos: Registro, resp: Response, sesion: Session = Depends(obtener_
         raise HTTPException(403, "Este email no está autorizado para crear la primera cuenta.")
     if "@" not in email or len(datos.contrasena) < 8:
         raise HTTPException(400, "Pon un email válido y una contraseña de al menos 8 caracteres.")
-    r = sesion.get(Restaurante, 1) or Restaurante(id=1, nombre=datos.restaurante.strip() or "Mi restaurante", lat=41.31, lon=2.01, modelo="restaurante.json")
+    r = sesion.get(Restaurante, 1) or Restaurante(id=1, nombre=datos.restaurante.strip() or "Mi restaurante", lat=datos.lat, lon=datos.lon,
+                                                  modelo=os.environ.get("MODELO_INICIAL", "demo.json"))
     sesion.add(r)
     sesion.flush()
     u = Usuario(email=email, contrasena=hash_contrasena(datos.contrasena), restaurante_id=r.id)

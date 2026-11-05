@@ -9,3 +9,8 @@ __pycache__/
 .pytest_cache/
 backend/.clave
 backend/modelos/r*.json
+# modelos con datos reales: nunca al repositorio (solo el de demostración)
+backend/modelos/*
+!backend/modelos/demo.json
+original/
+*.csv

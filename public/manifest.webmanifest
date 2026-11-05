@@ -3,9 +3,17 @@
   "short_name": "Previsión",
   "description": "Cuántas personas vendrán a comer y a cenar cada día",
   "lang": "es",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#f4f6f8",
   "theme_color": "#0f6e8c",
-  "icons": [{ "src": "/icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+  "icons": [
+    {
+      "src": "icono.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "scope": "./"
 }

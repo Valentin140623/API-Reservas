@@ -98,3 +98,4 @@ code{font-size:12.5px;background:var(--bg);padding:1px 5px;border-radius:5px}
 .tabla td{padding:7px 10px;border-bottom:1px solid var(--line)}
 .tabla tr.cerrado td{color:var(--muted)}
 .entrar{max-width:420px;margin:30px auto}
+.aviso.demo{margin:0 0 18px}

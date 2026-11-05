@@ -9,8 +9,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "extraer": "node scripts/extraer-datos.mjs original/Prevision_reservas_restaurante.html backend/modelos/restaurante.json",
-    "fixture": "node scripts/generar-fixture.mjs original/Prevision_reservas_restaurante.html src/motor/__fixtures__/original.json"
+    "fixture": "node scripts/generar-fixture.mjs backend/modelos/demo.json src/motor/__fixtures__/demo.json",
+    "modelo-demo": "cd backend && python scripts/crear_modelo_demo.py modelos/demo.json"
   },
   "dependencies": {
     "react": "^19.3.1",

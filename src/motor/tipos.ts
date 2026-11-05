@@ -25,6 +25,10 @@ export interface DatosModelo {
   festivos: Record<string, string>;
   especiales: Record<string, { nombre: string; anios: [number, number, number][] }>;
   historico: Record<string, DiaHistorico>;
+  /** true en el modelo de demostración (datos inventados) */
+  demo?: boolean;
+  /** se añade al descargar el modelo desde la app, para usarlo en la versión sin servidor */
+  restaurante?: { nombre: string; lat: number; lon: number };
 }
 
 export interface Tiempo {

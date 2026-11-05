@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { prever, errorPara, filaCalendario } from './prevision';
 import type { DatosModelo } from './tipos';
 
-const datos: DatosModelo = JSON.parse(readFileSync('backend/modelos/restaurante.json', 'utf8'));
-const fixture = JSON.parse(readFileSync('src/motor/__fixtures__/original.json', 'utf8'));
+const datos: DatosModelo = JSON.parse(readFileSync('backend/modelos/demo.json', 'utf8'));
+const fixture = JSON.parse(readFileSync('src/motor/__fixtures__/demo.json', 'utf8'));
 
 describe('motor de previsión', () => {
   it(`da exactamente lo mismo que el HTML original (${fixture.casos.length} casos)`, () => {

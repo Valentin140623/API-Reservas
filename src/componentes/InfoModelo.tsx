@@ -10,7 +10,7 @@ export default function InfoModelo({ datos }: { datos: DatosModelo }) {
       <div className="card"><p>Error medio sin reservas</p><div className="k">±{Math.round(datos.error_sin)}</div>
         <p>personas por día, con una media de {datos.media_test} personas/día. Últimos 6 meses.</p></div>
       <div className="card"><p>Aprendido de</p><div className="k">{Object.keys(datos.historico).length.toLocaleString('es-ES')} días</div>
-        <p>de histórico, de enero de 2022 al {datos.datos_hasta.split('-').reverse().join('-')}. Festivos de Catalunya y Viladecans incluidos.</p></div>
+        <p>de histórico, hasta el {datos.datos_hasta.split('-').reverse().join('-')}. Festivos de Catalunya incluidos.</p></div>
     </section>
   );
 }

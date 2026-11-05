@@ -95,7 +95,7 @@ def cuenta_como_reservada(estado: str) -> bool:
     """Qué reservas cuentan como "ya reservadas" al entrenar.
 
     No sabemos cuándo se canceló cada reserva, así que contamos las que acabaron viniendo.
-    Es lo que hacía el modelo original y da el menor error (probado con los CSV de restaurante).
+    Es lo que hacía el modelo original y da el menor error (probado con datos reales).
     """
     return estado in ESTADOS_ASISTENCIA
 

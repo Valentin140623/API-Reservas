@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, SIN_BACKEND, SIN_SESION, type DiaResumen, type Estado, type InfoModelo, type ResultadoImportacion, type ResultadoReentreno } from '../servicios/api';
+import { api, SIN_BACKEND, SIN_SESION, type DiaResumen, type Estado, type InfoModelo, type ResultadoImportacion, type ResultadoReentreno, type Yo } from '../servicios/api';
 import { DIAS_C, dsem, fmt, isoHoy, sumar } from '../motor';
 
 const fechaEs = (s: string | null) => (s ? s.split('-').reverse().join('-') : '—');
 
-export default function Datos({ onModeloNuevo }: { onModeloNuevo: () => void }) {
+export default function Datos({ onModeloNuevo, restaurante }: { onModeloNuevo: () => void; restaurante: Yo['restaurante'] }) {
   const [estado, setEstado] = useState<Estado | null>(null);
   const [dias, setDias] = useState<DiaResumen[]>([]);
   const [ficheros, setFicheros] = useState<File[]>([]);
@@ -41,6 +41,17 @@ export default function Datos({ onModeloNuevo }: { onModeloNuevo: () => void }) 
     } finally {
       setEntrenando(false);
     }
+  };
+
+  // Para usar el modelo en la versión sin servidor (móvil, compañeros): un .json con todo dentro.
+  const descargar = async () => {
+    const m = await api.modelo();
+    m.restaurante = { nombre: restaurante.nombre, lat: restaurante.lat, lon: restaurante.lon };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(m)], { type: 'application/json' }));
+    a.download = `prevision-${restaurante.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   const subir = async () => {
@@ -116,7 +127,10 @@ export default function Datos({ onModeloNuevo }: { onModeloNuevo: () => void }) 
       <section className="card semana">
         <div className="cab">
           <h2 style={{ margin: 0 }}>Modelo de previsión</h2>
-          <button onClick={reentrenar} disabled={entrenando}>{entrenando ? 'Reentrenando…' : 'Reentrenar ahora'}</button>
+          <div className="rapidos" style={{ marginTop: 0 }}>
+            <button onClick={descargar} title="Para abrirlo en la versión sin servidor (móvil o compañeros)">Descargar modelo para el móvil</button>
+            <button onClick={reentrenar} disabled={entrenando}>{entrenando ? 'Reentrenando…' : 'Reentrenar ahora'}</button>
+          </div>
         </div>
         {info && (
           <div className="turnos">

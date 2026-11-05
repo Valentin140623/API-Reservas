@@ -1,7 +1,7 @@
 """Importa CSV de CoverManager en una base en memoria y compara el resumen diario con el
 histórico que trae el HTML original. Sirve para comprobar que las reglas de resumen.py son las buenas.
 
-Uso:  python scripts/comparar_historico.py ../original/Prevision_reservas_restaurante.html reservas.csv turnos.csv
+Uso:  python scripts/comparar_historico.py ../original/mi_prevision.html reservas.csv turnos.csv
 """
 import json
 import os

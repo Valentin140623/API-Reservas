@@ -28,7 +28,7 @@ def _csv_sintetico(dias=300):
 
 def test_entrenar_genera_modelo_valido(sesion):
     importar_csv(sesion, _csv_sintetico())
-    actual = json.loads((CARPETA_MODELOS / "restaurante.json").read_text("utf-8"))
+    actual = json.loads((CARPETA_MODELOS / "demo.json").read_text("utf-8"))
     m = entrenar(sesion, actual)
     assert set(m["modelos"]) == {"sin_comida", "sin_cena", "res_comida", "res_cena"}
     assert m["datos_hasta"] == "2025-10-28"
@@ -49,7 +49,7 @@ def test_api_reentrenar(tmp_path, monkeypatch):
 
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
-    shutil.copy(CARPETA_MODELOS / "restaurante.json", tmp_path / "restaurante.json")
+    shutil.copy(CARPETA_MODELOS / "demo.json", tmp_path / "demo.json")
     monkeypatch.setattr(main, "CARPETA_MODELOS", tmp_path)
     monkeypatch.setattr(main, "TOLERANCIA", 100)  # con datos sintéticos el error no es comparable
     c = TestClient(main.app)
@@ -65,4 +65,4 @@ def test_api_reentrenar(tmp_path, monkeypatch):
     from app.modelos import ModeloEntrenado
     with Sesion() as s:
         assert s.query(ModeloEntrenado).count() == 1  # guardado en la base de datos
-    assert (tmp_path / "restaurante.json").exists()  # el de partida se conserva
+    assert (tmp_path / "demo.json").exists()  # el de partida se conserva

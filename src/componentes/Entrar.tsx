@@ -6,7 +6,7 @@ export default function Entrar({ onDentro, onSinBackend }: { onDentro: (yo: Yo) 
   const [primeraVez, setPrimeraVez] = useState<boolean | null>(null);
   const [email, setEmail] = useState('');
   const [contrasena, setContrasena] = useState('');
-  const [restaurante, setRestaurante] = useState('Mi restaurante');
+  const [restaurante, setRestaurante] = useState('');
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
 
