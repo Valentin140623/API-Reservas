@@ -8,7 +8,7 @@ if not exist node_modules (
 )
 if not exist backend\.venv (
   echo Instalando el servidor de datos, la primera vez tarda un poco...
-  py -m venv backend\.venv || python -m venv backend\.venv
+  py -3.13 -m venv backend\.venv || py -m venv backend\.venv || python -m venv backend\.venv
   backend\.venv\Scripts\python -m pip install -r backend\requirements.txt
 )
 start "Servidor de datos" cmd /k "cd backend && .venv\Scripts\uvicorn app.main:app --reload"
