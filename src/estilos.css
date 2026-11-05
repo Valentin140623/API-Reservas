@@ -99,3 +99,5 @@ code{font-size:12.5px;background:var(--bg);padding:1px 5px;border-radius:5px}
 .tabla tr.cerrado td{color:var(--muted)}
 .entrar{max-width:420px;margin:30px auto}
 .aviso.demo{margin:0 0 18px}
+.pasos{margin:0 0 16px;padding-left:20px;color:var(--muted);font-size:13.5px}
+.pasos li{margin-bottom:4px}

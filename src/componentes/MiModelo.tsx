@@ -27,6 +27,8 @@ export default function MiModelo({ onCambio }: { onCambio: () => void }) {
   const cargar = async (f: File | undefined) => {
     setError(''); setMensaje('');
     if (!f) return;
+    if (/\.csv$/i.test(f.name))
+      return setError('Los CSV de CoverManager se importan en la app del ordenador (pestaña «Datos»). Allí pulsa «Descargar modelo para el móvil» y carga aquí ese fichero .json.');
     try {
       const texto = await f.text();
       const fallo = validarModelo(JSON.parse(texto));
@@ -51,9 +53,14 @@ export default function MiModelo({ onCambio }: { onCambio: () => void }) {
     <div className="grid">
       <section className="card">
         <h2>Cargar mi modelo</h2>
+        <ol className="pasos">
+          <li>En el ordenador, abre la app completa, ve a <b>Datos</b> e importa tus CSV de CoverManager.</li>
+          <li>Pulsa <b>Descargar modelo para el móvil</b> y pásate el fichero <b>.json</b> (WhatsApp, correo…).</li>
+          <li>Aquí, elige ese fichero.</li>
+        </ol>
         <div className="campo">
           <label htmlFor="modelo">Fichero del modelo (.json)</label>
-          <input id="modelo" type="file" accept=".json,application/json" onChange={e => cargar(e.target.files?.[0])} />
+          <input id="modelo" type="file" accept=".json,application/json,.csv,text/csv" onChange={e => cargar(e.target.files?.[0])} />
           <div className="nota">
             Es el fichero que descargas en la versión completa de la app, en «Datos» → «Descargar modelo para el móvil».
             Se guarda solo en este dispositivo: no se sube a ningún sitio.
