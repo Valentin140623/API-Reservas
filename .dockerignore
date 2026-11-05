@@ -1,0 +1,8 @@
+node_modules
+dist
+backend/.venv
+backend/datos.db
+backend/.clave
+backend/modelos/r*.json
+original
+.git

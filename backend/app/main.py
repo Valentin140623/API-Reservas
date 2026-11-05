@@ -2,20 +2,22 @@
 import json
 import os
 import time
+from datetime import datetime
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Response, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response as RespuestaCruda
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .db import Base, engine, obtener_sesion
-from .entrenar import ErrorEntrenamiento, entrenar, guardar
+from .entrenar import ErrorEntrenamiento, entrenar
 from .importar import ErrorImportacion, importar_csv
-from .modelos import Reserva, Restaurante, TurnoDia, Usuario
+from .modelos import ModeloEntrenado, Reserva, Restaurante, TurnoDia, Usuario
 from .resumen import resumen
 from .seguridad import DURACION_SESION, comprobar_contrasena, crear_token, hash_contrasena, leer_token
 
@@ -84,6 +86,10 @@ def registro(datos: Registro, resp: Response, sesion: Session = Depends(obtener_
     if sesion.scalar(select(func.count()).select_from(Usuario)):
         raise HTTPException(403, "Ya hay una cuenta creada. Inicia sesión.")
     email = datos.email.strip().lower()
+    # En internet, PRIMER_EMAIL evita que otra persona cree la primera cuenta antes que tú.
+    primer = os.environ.get("PRIMER_EMAIL", "").strip().lower()
+    if primer and email != primer:
+        raise HTTPException(403, "Este email no está autorizado para crear la primera cuenta.")
     if "@" not in email or len(datos.contrasena) < 8:
         raise HTTPException(400, "Pon un email válido y una contraseña de al menos 8 caracteres.")
     r = sesion.get(Restaurante, 1) or Restaurante(id=1, nombre=datos.restaurante.strip() or "Mi restaurante", lat=41.31, lon=2.01, modelo="restaurante.json")
@@ -121,13 +127,22 @@ def yo(u: Usuario = Depends(usuario_actual), sesion: Session = Depends(obtener_s
 
 
 # ---------- datos del restaurante (todo filtrado por el restaurante del usuario) ----------
+def _texto_modelo(sesion: Session, r: Restaurante) -> str | None:
+    """El último modelo reentrenado (base de datos) o, si no hay, el modelo de partida (fichero)."""
+    ultimo = sesion.scalar(select(ModeloEntrenado.contenido).where(ModeloEntrenado.restaurante_id == r.id)
+                           .order_by(ModeloEntrenado.id.desc()).limit(1))
+    if ultimo:
+        return ultimo
+    f = CARPETA_MODELOS / Path(r.modelo).name
+    return f.read_text("utf-8") if f.exists() else None
+
+
 @app.get("/api/modelo")
 def modelo(u: Usuario = Depends(usuario_actual), sesion: Session = Depends(obtener_sesion)):
-    r = sesion.get(Restaurante, u.restaurante_id)
-    f = (CARPETA_MODELOS / Path(r.modelo).name)
-    if not f.exists():
+    texto = _texto_modelo(sesion, sesion.get(Restaurante, u.restaurante_id))
+    if not texto:
         raise HTTPException(404, "Este restaurante todavía no tiene modelo entrenado.")
-    return FileResponse(f, media_type="application/json", headers={"Cache-Control": "no-store"})
+    return RespuestaCruda(texto, media_type="application/json", headers={"Cache-Control": "no-store"})
 
 
 @app.post("/api/importar")
@@ -164,9 +179,9 @@ def dias(desde: date | None = None, hasta: date | None = None, u: Usuario = Depe
 TOLERANCIA = 1.15
 
 
-def _cargar_modelo(r: Restaurante) -> dict | None:
-    f = CARPETA_MODELOS / Path(r.modelo).name
-    return json.loads(f.read_text("utf-8")) if f.exists() else None
+def _cargar_modelo(sesion: Session, r: Restaurante) -> dict | None:
+    texto = _texto_modelo(sesion, r)
+    return json.loads(texto) if texto else None
 
 
 def _resumen_modelo(m: dict) -> dict:
@@ -176,7 +191,7 @@ def _resumen_modelo(m: dict) -> dict:
 
 @app.get("/api/modelo/info")
 def modelo_info(u: Usuario = Depends(usuario_actual), sesion: Session = Depends(obtener_sesion)):
-    m = _cargar_modelo(sesion.get(Restaurante, u.restaurante_id))
+    m = _cargar_modelo(sesion, sesion.get(Restaurante, u.restaurante_id))
     if not m:
         raise HTTPException(404, "Este restaurante todavía no tiene modelo entrenado.")
     return _resumen_modelo(m)
@@ -185,7 +200,7 @@ def modelo_info(u: Usuario = Depends(usuario_actual), sesion: Session = Depends(
 @app.post("/api/reentrenar")
 def reentrenar(u: Usuario = Depends(usuario_actual), sesion: Session = Depends(obtener_sesion)):
     r = sesion.get(Restaurante, u.restaurante_id)
-    actual = _cargar_modelo(r)
+    actual = _cargar_modelo(sesion, r)
     if not actual:
         raise HTTPException(400, "Hace falta un modelo de partida (con el calendario y los festivos).")
     try:
@@ -194,8 +209,23 @@ def reentrenar(u: Usuario = Depends(usuario_actual), sesion: Session = Depends(o
         raise HTTPException(400, str(e))
     aplicado = nuevo["error_sin"] <= actual["error_sin"] * TOLERANCIA
     if aplicado:
-        nombre = f"r{r.id}-{nuevo['generado']}-{int(time.time())}.json"
-        guardar(nuevo, CARPETA_MODELOS / nombre)  # los modelos anteriores se conservan
-        r.modelo = nombre
+        sesion.add(ModeloEntrenado(restaurante_id=r.id, creado=datetime.now(),
+                                   contenido=json.dumps(nuevo, separators=(",", ":"))))
         sesion.commit()
     return {"aplicado": aplicado, "antes": _resumen_modelo(actual), "despues": _resumen_modelo(nuevo)}
+
+
+# ---------- la web (React ya compilada) ----------
+# En producción el mismo servidor sirve la web y la API: un solo enlace para todo.
+WEB = Path(os.environ.get("CARPETA_WEB", Path(__file__).resolve().parent.parent.parent / "dist"))
+if WEB.is_dir():
+    app.mount("/assets", StaticFiles(directory=WEB / "assets"), name="assets")
+
+    @app.get("/{ruta:path}", include_in_schema=False)
+    def web(ruta: str):
+        if ruta.startswith("api/"):
+            raise HTTPException(404)
+        f = (WEB / ruta).resolve()
+        if ruta and f.is_file() and WEB.resolve() in f.parents:
+            return FileResponse(f)
+        return FileResponse(WEB / "index.html", headers={"Cache-Control": "no-cache"})

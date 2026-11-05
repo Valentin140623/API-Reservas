@@ -231,7 +231,3 @@ def entrenar(sesion: Session, actual: dict, restaurante_id: int = 1, hoy: date |
         "especiales": _especiales(sesion, actual["especiales"], restaurante_id),
         "historico": historico,
     }
-
-
-def guardar(modelo: dict, ruta) -> None:
-    ruta.write_text(json.dumps(modelo, separators=(",", ":")), "utf-8")

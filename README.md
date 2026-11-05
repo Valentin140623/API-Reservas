@@ -102,14 +102,32 @@ también hay un botón **Reentrenar ahora**. Lo hace `backend/app/entrenar.py`:
 Con los CSV de restaurante el error queda igual que el del modelo original (±26 personas/día sin reservas,
 ±15 con reservas a 1 día).
 
-## Desplegar
+## Publicar en internet
 
-La web es estática: cualquier hosting sirve (**Vercel** o **Netlify**: comando de build `npm run build`,
-carpeta `dist`). El backend se despliega aparte (Render, Railway, Fly.io...) con una base PostgreSQL:
-basta con poner la variable `DATABASE_URL`. 
+En producción todo va en **un solo servidor**: la API sirve también la web ya compilada, así que
+hay un único enlace. Se usa la imagen `Dockerfile` y una base de datos PostgreSQL
+(los modelos reentrenados se guardan en la base de datos, no en disco).
 
-> ⚠️ `backend/modelos/restaurante.json` contiene el histórico real del restaurante: usa un repositorio
-> **privado**. En producción pon `SECRET_KEY` (una clave larga aleatoria) y `COOKIE_SEGURA=1`.
+Con **Render** (https://render.com), usando `render.yaml`:
+
+1. Crea una cuenta en Render entrando con GitHub.
+2. **New → Blueprint** y elige este repositorio. Render lee `render.yaml` y crea la web y la base de datos.
+3. Te pedirá `PRIMER_EMAIL`: pon tu email. Solo ese email podrá crear la primera cuenta.
+4. Cuando termine, abre el enlace (`https://prevision-comensales.onrender.com` o parecido), crea tu cuenta e importa los CSV.
+
+Cada `git push` a `main` vuelve a desplegar solo. Variables que usa el servidor:
+
+| Variable | Para qué |
+|---|---|
+| `DATABASE_URL` | PostgreSQL (Render la pone sola) |
+| `SECRET_KEY` | firma de las sesiones (Render la genera) |
+| `COOKIE_SEGURA=1` | la cookie solo viaja por https |
+| `PRIMER_EMAIL` | único email que puede crear la primera cuenta |
+
+Desde el móvil, en el navegador: **Compartir → Añadir a pantalla de inicio** (iPhone) o
+**⋮ → Instalar app** (Android) y se abre como una app normal.
+
+> ⚠️ `backend/modelos/restaurante.json` contiene el histórico real del restaurante: mantén el repositorio **privado**.
 
 ## Hoja de ruta
 
@@ -118,5 +136,7 @@ basta con poner la variable `DATABASE_URL`.
    los CSV de CoverManager y calcula el resumen diario.
 3. **Cuentas y acceso** ✅ — inicio de sesión; cada usuario solo ve su restaurante.
 4. **Reentrenamiento automático** ✅ — el modelo LightGBM se reentrena solo con los datos nuevos.
-5. **Multi-restaurante y comercialización** — alta de nuevos locales (ubicación, festivos),
-   planes de pago (Stripe), integración con programas de reservas.
+5. **Publicarla en internet** ✅ — un enlace, sin instalar nada; instalable en el móvil.
+6. **Alta de otros restaurantes** — que cualquiera pueda registrarse con su local (ubicación,
+   festivos) y su modelo se entrene con sus propios CSV.
+7. **Comercialización** — planes de pago (Stripe), integración directa con CoverManager.

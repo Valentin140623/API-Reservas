@@ -1,7 +1,7 @@
 """Tablas. restaurante_id ya está preparado para cuando haya varios restaurantes (paso 5)."""
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import Date, Float, ForeignKey, Index, Integer, String
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -46,3 +46,13 @@ class Usuario(Base):
     email: Mapped[str] = mapped_column(String(200), unique=True)
     contrasena: Mapped[str] = mapped_column(String(200))  # hash scrypt, nunca la contraseña
     restaurante_id: Mapped[int] = mapped_column(ForeignKey("restaurantes.id"))
+
+
+class ModeloEntrenado(Base):
+    """Cada reentrenamiento se guarda aquí (en la base de datos, no en disco: en la nube el disco
+    se borra en cada despliegue). Se usa el más reciente; los anteriores se conservan."""
+    __tablename__ = "modelos_entrenados"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    restaurante_id: Mapped[int] = mapped_column(ForeignKey("restaurantes.id"), index=True)
+    creado: Mapped[datetime] = mapped_column(DateTime)
+    contenido: Mapped[str] = mapped_column(Text)  # el JSON completo del modelo

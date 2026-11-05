@@ -1,0 +1,24 @@
+# Despliegue en Render (https://render.com): New > Blueprint > elige este repositorio.
+services:
+  - type: web
+    name: prevision-comensales
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /api/salud
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: prevision-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: COOKIE_SEGURA
+        value: "1"
+      - key: PRIMER_EMAIL   # tu email: solo tú podrás crear la primera cuenta
+        sync: false
+databases:
+  - name: prevision-db
+    plan: basic-256mb
+    region: frankfurt
+    postgresMajorVersion: "16"

@@ -61,5 +61,8 @@ def test_api_reentrenar(tmp_path, monkeypatch):
     j = r.json()
     assert j["aplicado"] and j["despues"]["datos_hasta"] == "2025-10-28"
     assert c.get("/api/modelo/info").json()["datos_hasta"] == "2025-10-28"
-    assert len(list(tmp_path.glob("r1-*.json"))) == 1
-    assert (tmp_path / "restaurante.json").exists()  # el anterior se conserva
+    from app.db import Sesion
+    from app.modelos import ModeloEntrenado
+    with Sesion() as s:
+        assert s.query(ModeloEntrenado).count() == 1  # guardado en la base de datos
+    assert (tmp_path / "restaurante.json").exists()  # el de partida se conserva

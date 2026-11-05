@@ -64,3 +64,27 @@ def test_cada_restaurante_ve_lo_suyo():
     assert c2.get("/api/dias").json() == []
     assert c2.get("/api/modelo").status_code == 404
     assert c.get("/api/estado").json()["reservas"]["filas"] == 6
+
+
+def test_primer_email(monkeypatch):
+    c = nuevo_cliente()
+    monkeypatch.setenv("PRIMER_EMAIL", "valen@restaurante.es")
+    assert c.post("/api/registro", json={"email": "intruso@x.es", "contrasena": "12345678"}).status_code == 403
+    assert c.post("/api/registro", json={"email": "Valen@restaurante.es", "contrasena": "12345678"}).status_code == 200
+
+
+def test_sirve_la_web(tmp_path, monkeypatch):
+    import importlib
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "index.html").write_text("<title>web</title>")
+    (tmp_path / "manifest.webmanifest").write_text("{}")
+    monkeypatch.setenv("CARPETA_WEB", str(tmp_path))
+    import app.main as main
+    importlib.reload(main)
+    c = TestClient(main.app)
+    assert "web" in c.get("/").text
+    assert "web" in c.get("/cualquier/ruta").text  # la web decide qué pantalla mostrar
+    assert c.get("/manifest.webmanifest").text == "{}"
+    assert c.get("/api/no-existe").status_code == 404
+    monkeypatch.delenv("CARPETA_WEB")
+    importlib.reload(main)
