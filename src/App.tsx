@@ -7,11 +7,13 @@ import Consulta from './componentes/Consulta';
 import Resultado from './componentes/Resultado';
 import ProximosDias from './componentes/ProximosDias';
 import InfoModelo from './componentes/InfoModelo';
+import Datos from './componentes/Datos';
 
 export default function App() {
   const hoy = useMemo(() => isoHoy(), []);
   const [datos, setDatos] = useState<DatosModelo | null>(null);
   const [error, setError] = useState('');
+  const [pestana, setPestana] = useState<'prevision' | 'datos'>('prevision');
   const [tiempo, setTiempo] = useState<Record<string, Tiempo>>({});
   const prev = useMemo(() => {
     const p = recuperar();
@@ -40,11 +42,16 @@ export default function App() {
       <header><div className="wrap">
         <h1>Previsión de reservas</h1>
         <p>{RESTAURANTE.nombre} · personas por día, sin contar eventos</p>
+        <nav className="pestanas">
+          <button className={pestana === 'prevision' ? 'activa' : ''} onClick={() => setPestana('prevision')}>Previsión</button>
+          <button className={pestana === 'datos' ? 'activa' : ''} onClick={() => setPestana('datos')}>Datos</button>
+        </nav>
       </div></header>
       <main><div className="wrap">
-        {error && <div className="aviso">{error}</div>}
-        {!datos && !error && <div className="cargando">Cargando modelo…</div>}
-        {datos && (
+        {pestana === 'datos' && <Datos />}
+        {pestana === 'prevision' && error && <div className="aviso">{error}</div>}
+        {pestana === 'prevision' && !datos && !error && <div className="cargando">Cargando modelo…</div>}
+        {pestana === 'prevision' && datos && (
           <>
             <div className="grid">
               <Consulta

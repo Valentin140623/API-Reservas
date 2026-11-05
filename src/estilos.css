@@ -86,3 +86,14 @@ button.primario:hover{filter:brightness(1.08);color:#fff}
 footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:24px}
 .cargando{padding:60px 16px;text-align:center;color:var(--muted)}
 .chips:empty{display:none}
+nav.pestanas{display:flex;gap:6px;margin-left:auto}
+nav.pestanas button{background:transparent;border-color:rgba(255,255,255,.35);color:#fff}
+nav.pestanas button:hover{border-color:#fff;color:#fff}
+nav.pestanas button.activa{background:#fff;color:var(--accent-ink);border-color:#fff;font-weight:600}
+input[type=file]{padding:8px}
+button:disabled{opacity:.55;cursor:default}
+code{font-size:12.5px;background:var(--bg);padding:1px 5px;border-radius:5px}
+.tabla{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums;margin-top:6px}
+.tabla th{text-align:left;font-weight:600;color:var(--muted);font-size:12.5px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.tabla td{padding:7px 10px;border-bottom:1px solid var(--line)}
+.tabla tr.cerrado td{color:var(--muted)}

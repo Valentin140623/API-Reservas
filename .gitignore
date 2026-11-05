@@ -3,3 +3,7 @@ dist/
 .DS_Store
 *.log
 .env*
+backend/.venv/
+backend/datos.db
+__pycache__/
+.pytest_cache/

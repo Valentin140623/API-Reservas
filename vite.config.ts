@@ -5,4 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   base: process.env.BASE_PATH || '/',
   plugins: [react()],
+  // /api va al backend de Python (uvicorn en el puerto 8000)
+  server: { proxy: { '/api': 'http://127.0.0.1:8000' } },
+  preview: { proxy: { '/api': 'http://127.0.0.1:8000' } },
 });
