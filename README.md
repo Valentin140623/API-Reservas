@@ -4,7 +4,7 @@ App web que predice cuántas personas vendrán a un restaurante cada día, a com
 con o sin las reservas ya apuntadas. Aprende del histórico de reservas que exporta
 **CoverManager** y usa modelos **LightGBM**.
 
-**Pruébala:** https://valentin140623.github.io/Prevision-de-reservas/. Abre un restaurante de
+**Pruébala:** https://valentin140623.github.io/API-Reservas/. Abre un restaurante de
 demostración con datos inventados. En el móvil se puede añadir a la pantalla de inicio y se abre como una app.
 
 ## Dos formas de usarla
