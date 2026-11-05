@@ -19,9 +19,11 @@ demostración con datos inventados. En el móvil se puede añadir a la pantalla 
 | Cuentas e inicio de sesión | — | ✅ |
 | Tus datos | Solo en tu dispositivo | En tu base de datos |
 
-**Llevar tu modelo al móvil:** en la versión completa, ve a *Datos* → **Descargar modelo para el móvil**.
-Pásate el `.json` (por WhatsApp, correo...), abre el enlace de GitHub Pages en el móvil, entra en
-*Mi modelo* y cárgalo. Se guarda solo en ese dispositivo, nunca se sube a ningún sitio.
+**Pasársela a compañeros (o a tu móvil):** en la versión completa, ve a *Datos* → **Compartir con compañeros**.
+Envía de una vez el fichero del modelo y un mensaje con el enlace. En el móvil se abre el menú de compartir
+(WhatsApp, correo...). En el ordenador se descarga el fichero y el mensaje queda copiado para pegarlo.
+Quien lo recibe abre el enlace, elige el fichero y listo. Se guarda solo en su dispositivo. Cuando reentrenes,
+vuelve a compartirlo.
 
 ## Privacidad
 

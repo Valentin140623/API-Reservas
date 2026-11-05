@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, SIN_BACKEND, SIN_SESION, type DiaResumen, type Estado, type InfoModelo, type ResultadoImportacion, type ResultadoReentreno, type Yo } from '../servicios/api';
+import Companeros from './Companeros';
+import { EN_INTERNET, URL_MOVIL } from '../modo';
 import { DIAS_C, dsem, fmt, isoHoy, sumar } from '../motor';
 
 const fechaEs = (s: string | null) => (s ? s.split('-').reverse().join('-') : '—');
@@ -44,14 +46,32 @@ export default function Datos({ onModeloNuevo, restaurante }: { onModeloNuevo: (
   };
 
   // Para usar el modelo en la versión sin servidor (móvil, compañeros): un .json con todo dentro.
-  const descargar = async () => {
+  const [compartido, setCompartido] = useState('');
+  const ficheroModelo = async () => {
     const m = await api.modelo();
     m.restaurante = { nombre: restaurante.nombre, lat: restaurante.lat, lon: restaurante.lon };
+    const nombre = `prevision-${restaurante.nombre.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-')}.json`;
+    return new File([JSON.stringify(m)], nombre, { type: 'application/json' });
+  };
+  const bajar = (f: File) => {
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(m)], { type: 'application/json' }));
-    a.download = `prevision-${restaurante.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`;
+    a.href = URL.createObjectURL(f);
+    a.download = f.name;
     a.click();
     URL.revokeObjectURL(a.href);
+  };
+  const descargar = async () => bajar(await ficheroModelo());
+  const instrucciones = `Previsión de comensales de ${restaurante.nombre}:\n1. Guarda el fichero adjunto.\n2. Abre ${URL_MOVIL}#cargar\n3. Elige el fichero. ¡Listo! (Para tenerla como app: Compartir → Añadir a pantalla de inicio)`;
+  const compartir = async () => {
+    setCompartido('');
+    const f = await ficheroModelo();
+    if (navigator.canShare?.({ files: [f] })) {
+      try { await navigator.share({ files: [f], text: instrucciones }); return; } catch (e) { if ((e as Error).name === 'AbortError') return; }
+    }
+    // Sin "compartir" del sistema: se descarga el fichero y se copia el mensaje para pegarlo en WhatsApp.
+    bajar(f);
+    try { await navigator.clipboard.writeText(instrucciones); } catch { /* sin portapapeles */ }
+    setCompartido(instrucciones);
   };
 
   const subir = async () => {
@@ -128,7 +148,8 @@ export default function Datos({ onModeloNuevo, restaurante }: { onModeloNuevo: (
         <div className="cab">
           <h2 style={{ margin: 0 }}>Modelo de previsión</h2>
           <div className="rapidos" style={{ marginTop: 0 }}>
-            <button onClick={descargar} title="Para abrirlo en la versión sin servidor (móvil o compañeros)">Descargar modelo para el móvil</button>
+            <button onClick={compartir} title="Manda el modelo y el enlace a tus compañeros o a tu móvil">Compartir con compañeros</button>
+            <button onClick={descargar}>Descargar modelo</button>
             <button onClick={reentrenar} disabled={entrenando}>{entrenando ? 'Reentrenando…' : 'Reentrenar ahora'}</button>
           </div>
         </div>
@@ -151,12 +172,21 @@ export default function Datos({ onModeloNuevo, restaurante }: { onModeloNuevo: (
             )}
           </div>
         )}
+        {compartido && (
+          <div className="invitacion">
+            <div className="nota" style={{ marginTop: 0 }}>
+              Se ha descargado el fichero del modelo y este mensaje está copiado. Pégalo en WhatsApp y adjunta el fichero:
+            </div>
+            <pre>{compartido}</pre>
+          </div>
+        )}
         {errorModelo && <div className="aviso">{errorModelo === SIN_SESION ? 'La sesión ha caducado. Recarga la página y vuelve a entrar.' : errorModelo}</div>}
         <div className="nota" style={{ marginTop: 12 }}>
           Cada vez que importas CSV, el modelo se reentrena solo con todo lo guardado. Para medir el error se entrena primero sin los últimos 6 meses y se compara con lo que vino de verdad.
           Si el modelo nuevo es peor que el actual, se mantiene el actual.
         </div>
       </section>
+      {EN_INTERNET && <Companeros />}
       {dias.length > 0 && (
         <section className="card semana">
           <h2>Últimos 30 días con datos</h2>

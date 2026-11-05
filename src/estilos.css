@@ -101,3 +101,6 @@ code{font-size:12.5px;background:var(--bg);padding:1px 5px;border-radius:5px}
 .aviso.demo{margin:0 0 18px}
 .pasos{margin:0 0 16px;padding-left:20px;color:var(--muted);font-size:13.5px}
 .pasos li{margin-bottom:4px}
+.invitacion{margin-top:14px;border:1px solid var(--line);border-radius:12px;padding:12px}
+.invitacion pre{white-space:pre-wrap;font:inherit;font-size:13.5px;background:var(--bg);border-radius:8px;padding:10px;margin:8px 0}
+@media (max-width:860px){.semana .grid{grid-template-columns:1fr!important}}

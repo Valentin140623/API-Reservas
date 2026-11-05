@@ -26,7 +26,7 @@ export default function Panel({ cargar, restaurante, extra, salir, onError }: Pr
   const hoy = useMemo(() => isoHoy(), []);
   const [datos, setDatos] = useState<DatosModelo | null>(null);
   const [error, setError] = useState('');
-  const [pestana, setPestana] = useState<'prevision' | 'extra'>('prevision');
+  const [pestana, setPestana] = useState<'prevision' | 'extra'>(location.hash === '#cargar' ? 'extra' : 'prevision');
   const [tiempo, setTiempo] = useState<Record<string, Tiempo>>({});
   const prev = useMemo(() => {
     const p = recuperar();

@@ -88,3 +88,19 @@ def test_sirve_la_web(tmp_path, monkeypatch):
     assert c.get("/api/no-existe").status_code == 404
     monkeypatch.delenv("CARPETA_WEB")
     importlib.reload(main)
+
+
+def test_invitar_companeros():
+    c = nuevo_cliente()
+    c.post("/api/registro", json={"email": "jefe@x.es", "contrasena": "12345678"})
+    assert c.post("/api/usuarios", json={"email": "Ana@x.es", "contrasena": "corta"}).status_code == 400
+    assert c.post("/api/usuarios", json={"email": "Ana@x.es", "contrasena": "12345678"}).status_code == 200
+    assert c.post("/api/usuarios", json={"email": "ana@x.es", "contrasena": "12345678"}).status_code == 409
+    assert [x["email"] for x in c.get("/api/usuarios").json()] == ["jefe@x.es", "ana@x.es"]
+    ana = TestClient(app)
+    assert ana.post("/api/login", json={"email": "ana@x.es", "contrasena": "12345678"}).status_code == 200
+    assert ana.get("/api/yo").json()["restaurante"]["id"] == 1  # mismo restaurante
+    assert c.delete("/api/usuarios/jefe@x.es").status_code == 400
+    assert c.delete("/api/usuarios/ana@x.es").status_code == 200
+    assert ana.get("/api/yo").status_code == 401  # ya no puede entrar
+    assert TestClient(app).post("/api/usuarios", json={"email": "z@x.es", "contrasena": "12345678"}).status_code == 401

@@ -4,3 +4,9 @@
  * Se activa compilando con VITE_MODO=navegador.
  */
 export const MODO_NAVEGADOR = import.meta.env.VITE_MODO === 'navegador';
+
+/** Enlace de la versión sin servidor (GitHub Pages), para compartir el modelo con compañeros. */
+export const URL_MOVIL: string = import.meta.env.VITE_URL_MOVIL || 'https://valentin140623.github.io/Prevision-de-reservas/';
+
+/** true si la app completa está en internet (no en localhost): ahí tiene sentido invitar compañeros. */
+export const EN_INTERNET = !['localhost', '127.0.0.1'].includes(location.hostname);

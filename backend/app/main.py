@@ -129,6 +129,43 @@ def yo(u: Usuario = Depends(usuario_actual), sesion: Session = Depends(obtener_s
     return _yo(u, sesion)
 
 
+# ---------- compañeros: otros usuarios del mismo restaurante ----------
+class NuevoCompanero(BaseModel):
+    email: str
+    contrasena: str
+
+
+@app.get("/api/usuarios")
+def usuarios(u: Usuario = Depends(usuario_actual), sesion: Session = Depends(obtener_sesion)):
+    q = select(Usuario.email).where(Usuario.restaurante_id == u.restaurante_id).order_by(Usuario.id)
+    return [{"email": e, "tu": e == u.email} for e in sesion.scalars(q)]
+
+
+@app.post("/api/usuarios")
+def invitar(datos: NuevoCompanero, u: Usuario = Depends(usuario_actual), sesion: Session = Depends(obtener_sesion)):
+    email = datos.email.strip().lower()
+    if "@" not in email or len(datos.contrasena) < 8:
+        raise HTTPException(400, "Pon un email válido y una contraseña de al menos 8 caracteres.")
+    if sesion.scalar(select(Usuario).where(Usuario.email == email)):
+        raise HTTPException(409, "Ese email ya tiene cuenta.")
+    sesion.add(Usuario(email=email, contrasena=hash_contrasena(datos.contrasena), restaurante_id=u.restaurante_id))
+    sesion.commit()
+    return {"email": email}
+
+
+@app.delete("/api/usuarios/{email}")
+def quitar(email: str, u: Usuario = Depends(usuario_actual), sesion: Session = Depends(obtener_sesion)):
+    email = email.strip().lower()
+    if email == u.email:
+        raise HTTPException(400, "No puedes quitarte a ti mismo.")
+    otro = sesion.scalar(select(Usuario).where(Usuario.email == email, Usuario.restaurante_id == u.restaurante_id))
+    if not otro:
+        raise HTTPException(404, "No existe ese compañero.")
+    sesion.delete(otro)
+    sesion.commit()
+    return {"ok": True}
+
+
 # ---------- datos del restaurante (todo filtrado por el restaurante del usuario) ----------
 def _texto_modelo(sesion: Session, r: Restaurante) -> str | None:
     """El último modelo reentrenado (base de datos) o, si no hay, el modelo de partida (fichero)."""
