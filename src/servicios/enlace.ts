@@ -2,9 +2,11 @@
 // La fuente se recuerda en el dispositivo para que, al volver a abrir la app, se actualice sola.
 const CLAVE = 'fuente-modelo';
 
-/** Convierte el parámetro del enlace en la URL del fichero (solo gists de GitHub). */
-export function urlFuente(m: string): string | null {
-  return /^[\w-]+\/[0-9a-f]{20,40}$/i.test(m) ? `https://gist.githubusercontent.com/${m}/raw` : null;
+/** Convierte el parámetro del enlace en las URL posibles del fichero (solo gists de GitHub). */
+export function urlFuente(m: string): string[] | null {
+  if (!/^[\w-]+\/[0-9a-f]{20,40}$/i.test(m)) return null;
+  const base = `https://gist.githubusercontent.com/${m}/raw`;
+  return [`${base}/modelo.json`, base];
 }
 
 export function fuenteModelo(): string | null {

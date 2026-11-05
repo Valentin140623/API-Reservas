@@ -21,16 +21,14 @@ export default function App() {
 function AppNavegador() {
   const cargar = useCallback(async (): Promise<DatosModelo> => {
     const fuente = fuenteModelo();
-    const url = fuente && urlFuente(fuente);
-    if (url) {
-      // se descarga cada vez para tener la última versión; sin conexión se usa la copia guardada
+    // se descarga cada vez para tener la última versión; sin conexión se usa la copia guardada
+    for (const url of (fuente && urlFuente(fuente)) || []) {
       try {
         const r = await fetch(url, { cache: 'no-cache' });
-        if (r.ok) {
-          const texto = await r.text();
-          if (!validarModelo(JSON.parse(texto))) { await guardarModelo(texto); return JSON.parse(texto); }
-        }
-      } catch { /* sin conexión */ }
+        if (!r.ok) continue;
+        const texto = await r.text();
+        if (!validarModelo(JSON.parse(texto))) { await guardarModelo(texto); return JSON.parse(texto); }
+      } catch { /* sin conexión o fichero no válido */ }
     }
     const propio = await leerModeloGuardado();
     if (propio) return JSON.parse(propio);
