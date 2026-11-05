@@ -1,5 +1,5 @@
 @echo off
-REM Arranca la app completa en Windows: doble clic en este fichero.
+REM Entorno de desarrollo en Windows: instala dependencias si faltan y arranca API y web.
 cd /d "%~dp0"
 set "PATH=%PATH%;C:\Program Files\nodejs"
 if not exist node_modules (

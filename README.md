@@ -1,123 +1,143 @@
-# Previsión de comensales
+<div align="center">
 
-App web que predice cuántas personas vendrán a un restaurante cada día, a comida y a cena,
-con o sin las reservas ya apuntadas. Aprende del histórico de reservas que exporta
-**CoverManager** y usa modelos **LightGBM**.
+<img src="public/icono.svg" width="88" alt="">
 
-**Pruébala:** https://valentin140623.github.io/API-Reservas/. Abre un restaurante de
-demostración con datos inventados. En el móvil se puede añadir a la pantalla de inicio y se abre como una app.
+# Previsión de reservas
 
-## Dos formas de usarla
+**Cuántas personas vendrán a tu restaurante cada día, a comida y a cena.**
 
-| | Versión sin servidor (GitHub Pages) | Versión completa (con servidor) |
+Aprende del histórico de reservas de CoverManager con modelos LightGBM y funciona en el móvil como una app.
+
+[**Abrir la demo**](https://valentin140623.github.io/API-Reservas/) ·
+[Cómo funciona](#cómo-funciona) ·
+[Arquitectura](#arquitectura) ·
+[Desarrollo](#desarrollo)
+
+![Tests](https://github.com/Valentin140623/API-Reservas/actions/workflows/ci.yml/badge.svg)
+![Pages](https://github.com/Valentin140623/API-Reservas/actions/workflows/pages.yml/badge.svg)
+
+<img src="docs/escritorio.png" alt="Panel de previsión en el ordenador" width="860">
+
+<img src="docs/movil-prevision.png" alt="Previsión en el móvil" width="250">&nbsp;&nbsp;<img src="docs/movil-oscuro.png" alt="Próximos 14 días en modo oscuro" width="250">
+
+</div>
+
+## Qué hace
+
+- **Previsión por día y turno.** Comensales esperados a comida y a cena, con su margen de error habitual.
+- **Con o sin reservas.** Sin datos, la previsión sale del calendario y del histórico. Con las personas
+  ya reservadas, el modelo estima cuántas faltan por llegar según los días de antelación.
+- **Contexto del día.** Festivos, puentes, días especiales, comparación con el mismo día de otros años
+  y el tiempo previsto (Open-Meteo).
+- **Próximos 14 días** de un vistazo.
+- **Reentrenamiento automático** cada vez que se importan nuevos informes de CoverManager.
+- **Diseño nativo.** Estilo iOS con modo oscuro, barra de pestañas en el móvil y se instala en la
+  pantalla de inicio (PWA). La previsión se calcula en el propio dispositivo y funciona sin conexión.
+
+## Dos versiones
+
+| | **Ligera** (GitHub Pages) | **Completa** (servidor) |
 |---|---|---|
-| Para qué | Ver la previsión en el móvil, pasársela a un compañero | Llevar el restaurante: importar datos, reentrenar |
-| Instalar | Nada: es un enlace | Node.js + Python, o desplegar en Render |
+| Uso | Consultar la previsión en el móvil | Gestión del restaurante |
+| Instalación | Ninguna: es un enlace | Docker o Node.js + Python |
 | Previsión por día y turno | ✅ | ✅ |
-| Importar CSV de CoverManager | — | ✅ |
-| Reentrenar el modelo | — | ✅ (automático al importar) |
-| Cuentas e inicio de sesión | — | ✅ |
-| Tus datos | Solo en tu dispositivo | En tu base de datos |
+| Importar informes de CoverManager | — | ✅ |
+| Reentrenamiento | — | ✅ automático |
+| Cuentas de usuario | — | ✅ |
+| Dónde están los datos | Solo en el dispositivo (IndexedDB) | Base de datos del servidor |
 
-**Pasársela a compañeros (o a tu móvil):** en la versión completa, ve a *Datos* → **Compartir con compañeros**.
-Envía de una vez el fichero del modelo y un mensaje con el enlace. En el móvil se abre el menú de compartir
-(WhatsApp, correo...). En el ordenador se descarga el fichero y el mensaje queda copiado para pegarlo.
-Quien lo recibe abre el enlace, elige el fichero y listo. Se guarda solo en su dispositivo. Cuando reentrenes,
-vuelve a compartirlo.
+El equipo comparte el modelo sin servidor de pago: desde *Datos → Compartir con compañeros* se envía
+el modelo entrenado (un `.json`) junto con el enlace de la versión ligera. Al abrirlo en el móvil, el
+modelo se guarda solo en ese dispositivo.
+
+## Cómo funciona
+
+1. **Importación.** Se leen los dos informes de CoverManager: reservas (`report_reserv_stats_basic.csv`)
+   y personas por turno (`report_persons_turn_days.csv`). Volver a importar un periodo sustituye esas
+   fechas, sin duplicar.
+2. **Resumen diario.** Por cada día y turno: personas que vinieron (reservas sentadas, llegadas o
+   confirmadas), reservadas y cerrado. Los grupos de 50 personas o más cuentan como eventos y van aparte.
+3. **Entrenamiento.** Cuatro modelos LightGBM: comida y cena, con y sin reservas ya apuntadas. Usan el
+   día de la semana, la época del año, festivos y sus vísperas, puentes y vacaciones escolares; los de
+   reservas añaden las personas ya apuntadas y los días de antelación.
+4. **Validación.** El error se mide entrenando sin los últimos 6 meses y comparando con lo que pasó de
+   verdad. Un modelo nuevo solo sustituye al actual si no empeora el error más de un 15 %.
+5. **Previsión.** Los árboles se exportan a JSON y se evalúan en el navegador, de modo que la consulta
+   es instantánea y no necesita servidor.
+
+## Arquitectura
+
+```
+src/motor/               Motor de previsión en TypeScript (evalúa los árboles), con tests
+src/componentes/         Interfaz en React
+src/modo.ts              Versión ligera (VITE_MODO=navegador) o completa
+backend/app/main.py      API FastAPI: cuentas, modelo, importación y reentrenamiento; sirve la web
+backend/app/importar.py  Lectura de los informes de CoverManager
+backend/app/resumen.py   Resumen diario por turno
+backend/app/entrenar.py  Entrenamiento y validación (LightGBM)
+backend/app/seguridad.py Contraseñas (scrypt) y cookie de sesión firmada (HMAC)
+backend/modelos/demo.json Modelo de demostración, entrenado con datos sintéticos
+```
+
+**Tecnología:** React 19 · TypeScript · Vite · Vitest · FastAPI · SQLAlchemy · SQLite / PostgreSQL ·
+LightGBM · Docker · GitHub Actions.
 
 ## Privacidad
 
-En este repositorio **no hay datos reales**. Lo único que hay es `backend/modelos/demo.json`, entrenado con
-reservas inventadas por `backend/scripts/crear_modelo_demo.py`. Git ignora los modelos reales, los CSV,
-la base de datos y la clave de sesiones (`.gitignore`), así que no se suben aunque estén en tu carpeta.
+El repositorio no contiene datos reales. El único modelo incluido es `backend/modelos/demo.json`,
+generado a partir de reservas sintéticas con `backend/scripts/crear_modelo_demo.py`. Los modelos
+propios, los CSV, la base de datos y la clave de sesiones están excluidos en `.gitignore`.
 
-## Arrancar la versión completa en local
+## Desarrollo
 
-Necesitas [Node.js](https://nodejs.org/) (LTS) y [Python 3.13](https://www.python.org/downloads/).
-
-**En Windows:** doble clic en `iniciar.bat`. La primera vez lo instala todo; después abre el servidor
-de datos, la web y el navegador en http://localhost:5173.
-
-A mano, con dos terminales:
+Requisitos: [Node.js](https://nodejs.org/) LTS y [Python 3.13](https://www.python.org/downloads/).
 
 ```bash
-# terminal 1: servidor de datos (API)
+# API (http://localhost:8000/docs)
 cd backend
 python -m venv .venv
-.venv\Scripts\pip install -r requirements.txt     # en Mac/Linux: .venv/bin/pip
-.venv\Scripts\uvicorn app.main:app --reload       # http://localhost:8000/docs
+.venv/bin/pip install -r requirements.txt        # Windows: .venv\Scripts\pip
+.venv/bin/uvicorn app.main:app --reload
 
-# terminal 2: web
+# Web (http://localhost:5173)
 npm install
-npm run dev                                       # http://localhost:5173
+npm run dev
 ```
 
-La primera vez te pide **crear la primera cuenta** (restaurante, email y contraseña). El restaurante
-empieza con el modelo de demostración. En cuanto importas tus CSV, se entrena uno con tus datos.
+En Windows, `iniciar.bat` hace todo lo anterior y abre el navegador.
 
-Para usar un modelo propio como punto de partida, ponlo en `backend/modelos/` y arranca con
-`MODELO_INICIAL=mi_modelo.json`. Git no lo subirá.
+Al arrancar por primera vez, la web pide crear la cuenta del restaurante, que empieza con el modelo de
+demostración. Al importar los primeros informes se entrena un modelo con los datos reales.
 
-## Datos de CoverManager
+**Tests:** `npm test` (motor y equivalencia con el prototipo original) y
+`cd backend && .venv/bin/python -m pytest` (importación, sesiones y entrenamiento).
 
-En la pestaña **Datos** se suben los dos informes que exporta CoverManager:
+## Despliegue
 
-- **Reservas** (`report_reserv_stats_basic.csv`): una fila por reserva, con estado y fecha en que se hizo.
-- **Personas por turno** (`report_persons_turn_days.csv`): personas reservadas y capacidad por día y turno.
+**Versión ligera.** `.github/workflows/pages.yml` la publica en GitHub Pages con cada push a `main`
+(requiere *Settings → Pages → Source: GitHub Actions*).
 
-Puedes subirlos tantas veces como quieras: las fechas que cubre el fichero se sustituyen, no se duplican.
-"Vinieron" cuenta las reservas sentadas, llegadas o confirmadas. Los eventos (50 personas o más) van aparte.
+**Versión completa.** `render.yaml` define un Blueprint de [Render](https://render.com) con el
+servidor (`Dockerfile`, una sola imagen para web y API) y una base de datos PostgreSQL.
 
-## Reentrenar el modelo
-
-Cada vez que importas CSV, el modelo se reentrena solo en unos segundos. También hay un botón
-**Reentrenar ahora**. Lo hace `backend/app/entrenar.py`:
-
-- Hay 4 modelos LightGBM: comida y cena, con y sin reservas ya apuntadas.
-- El error se mide entrenando sin los últimos 6 meses y comparando con lo que vino de verdad.
-- Si el modelo nuevo se equivoca más de un 15 % que el actual, se mantiene el actual.
-- Los modelos se guardan en la base de datos y los anteriores se conservan.
-
-## Estructura
-
-```
-src/motor/                 Lógica de previsión (sin interfaz), con tests
-src/componentes/           Pantallas en React
-src/modo.ts                Versión sin servidor (VITE_MODO=navegador) o completa
-backend/app/main.py        API: cuentas, modelo, importar, reentrenar; sirve también la web
-backend/app/importar.py    Lectura de los CSV de CoverManager
-backend/app/resumen.py     Resumen diario (cuántos vinieron por turno, reservadas, eventos, cerrado)
-backend/app/entrenar.py    Reentrenamiento (LightGBM)
-backend/app/seguridad.py   Contraseñas (scrypt) y cookie de sesión firmada
-backend/modelos/demo.json  Modelo de demostración (datos inventados)
-scripts/motor-original.js  Motor del prototipo original; los tests comprueban que la app da lo mismo
-```
-
-Tests: `npm test` (web) y `cd backend && .venv/bin/python -m pytest` (servidor).
-
-## Publicar
-
-**Versión sin servidor (gratis, GitHub Pages).** Ve a *Settings → Pages → Source: GitHub Actions*.
-Cada `git push` a `main` la vuelve a publicar con `.github/workflows/pages.yml`.
-
-**Versión completa en internet (Render).** Ve a *New → Blueprint* y elige este repositorio. `render.yaml` crea
-el servidor (`Dockerfile`) y una base PostgreSQL. Cuando lo pida, pon tu email en `PRIMER_EMAIL`:
-así solo tú puedes crear la primera cuenta.
-
-| Variable | Para qué |
+| Variable | Descripción |
 |---|---|
-| `DATABASE_URL` | PostgreSQL (Render la pone sola) |
-| `SECRET_KEY` | firma de las sesiones (Render la genera) |
-| `COOKIE_SEGURA=1` | la cookie solo viaja por https |
-| `PRIMER_EMAIL` | único email que puede crear la primera cuenta |
-| `MODELO_INICIAL` | modelo de partida (por defecto `demo.json`) |
+| `DATABASE_URL` | Conexión a PostgreSQL (por defecto, SQLite local) |
+| `SECRET_KEY` | Clave de firma de las sesiones |
+| `COOKIE_SEGURA=1` | La cookie de sesión solo viaja por HTTPS |
+| `PRIMER_EMAIL` | Único email autorizado a crear la primera cuenta |
+| `MODELO_INICIAL` | Modelo de partida en `backend/modelos/` (por defecto `demo.json`) |
 
 ## Hoja de ruta
 
-1. ✅ Prototipo HTML convertido en app (React + TypeScript + Vite), con tests y CI.
-2. ✅ Importar los CSV de CoverManager (FastAPI + SQLite/PostgreSQL).
-3. ✅ Cuentas: cada usuario solo ve su restaurante.
-4. ✅ Reentrenamiento automático.
-5. ✅ Lista para internet (un servidor, Docker, Render) y versión sin servidor para el móvil.
-6. Alta de otros restaurantes con su ubicación y sus festivos.
-7. Comercialización: planes de pago, integración directa con CoverManager.
+- [x] Motor de previsión en React + TypeScript, con tests y CI
+- [x] Importación de informes de CoverManager
+- [x] Cuentas de usuario por restaurante
+- [x] Reentrenamiento automático
+- [x] Despliegue con Docker, versión ligera para el móvil y diseño nativo
+- [ ] Alta de nuevos restaurantes con su ubicación y calendario de festivos
+- [ ] Planes de suscripción e integración directa con CoverManager
+
+---
+
+© 2026 Valentin. Todos los derechos reservados.

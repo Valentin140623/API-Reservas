@@ -1,4 +1,4 @@
-# Despliegue en Render (https://render.com): New > Blueprint > elige este repositorio.
+# Blueprint de Render (https://render.com): servidor web (Docker) + PostgreSQL.
 services:
   - type: web
     name: prevision-comensales
@@ -15,7 +15,7 @@ services:
         generateValue: true
       - key: COOKIE_SEGURA
         value: "1"
-      - key: PRIMER_EMAIL   # tu email: solo tú podrás crear la primera cuenta
+      - key: PRIMER_EMAIL   # único email autorizado a crear la primera cuenta
         sync: false
 databases:
   - name: prevision-db
