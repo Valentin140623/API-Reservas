@@ -63,12 +63,15 @@ function Panel({ yo, onSalir, onSinSesion }: { yo: Yo; onSalir: () => void; onSi
   // lo que se calculó al pulsar "Calcular" (o al cambiar de fecha)
   const [consulta, setConsulta] = useState({ f: fecha, rc, rn });
 
-  useEffect(() => {
+  const cargarModelo = useCallback(() => {
     api.modelo()
-      .then(setDatos)
+      .then(d => { setDatos(d); setError(''); })
       .catch(e => (e.message === SIN_SESION ? onSinSesion() : setError(`No se ha podido cargar el modelo: ${e.message}`)));
+  }, [onSinSesion]);
+  useEffect(() => {
+    cargarModelo();
     cargarTiempo(yo.restaurante.lat, yo.restaurante.lon).then(setTiempo);
-  }, [yo, onSinSesion]);
+  }, [yo, cargarModelo]);
 
   useEffect(() => { guardar(consulta); }, [consulta]);
 
@@ -86,7 +89,7 @@ function Panel({ yo, onSalir, onSinSesion }: { yo: Yo; onSalir: () => void; onSi
         </nav>
       </div></header>
       <main><div className="wrap">
-        {pestana === 'datos' && <Datos />}
+        {pestana === 'datos' && <Datos onModeloNuevo={cargarModelo} />}
         {pestana === 'prevision' && error && <div className="aviso">{error}</div>}
         {pestana === 'prevision' && !datos && !error && <div className="cargando">Cargando modelo…</div>}
         {pestana === 'prevision' && datos && (

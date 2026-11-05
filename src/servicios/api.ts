@@ -5,6 +5,8 @@ export interface ResultadoImportacion { fichero: string; tipo: 'reservas' | 'tur
 export interface Rango { filas: number; desde: string | null; hasta: string | null }
 export interface Estado { reservas: Rango; turnos: Rango }
 export interface DiaResumen { fecha: string; comida: number | null; cena: number | null; reservadas: number; eventos: number; cerrado: boolean }
+export interface InfoModelo { generado: string; datos_hasta: string; error_sin: number; media_test: number; error_res: Record<string, number>; dias: number }
+export interface ResultadoReentreno { aplicado: boolean; antes: InfoModelo; despues: InfoModelo }
 export interface Yo { email: string; restaurante: { id: number; nombre: string; lat: number; lon: number } }
 
 /** Errores especiales: el backend no está arrancado, o la sesión no es válida. */
@@ -36,6 +38,8 @@ export const api = {
   registro: (email: string, contrasena: string, restaurante: string) => pedir<Yo>('/api/registro', json({ email, contrasena, restaurante })),
   logout: () => pedir<{ ok: boolean }>('/api/logout', { method: 'POST' }),
   modelo: () => pedir<DatosModelo>('/api/modelo'),
+  modeloInfo: () => pedir<InfoModelo>('/api/modelo/info'),
+  reentrenar: () => pedir<ResultadoReentreno>('/api/reentrenar', { method: 'POST' }),
   estado: () => pedir<Estado>('/api/estado'),
   dias: (desde: string, hasta: string) => pedir<DiaResumen[]>(`/api/dias?desde=${desde}&hasta=${hasta}`),
   importar: (ficheros: File[]) => {

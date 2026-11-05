@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, SIN_BACKEND, SIN_SESION, type DiaResumen, type Estado, type ResultadoImportacion } from '../servicios/api';
+import { api, SIN_BACKEND, SIN_SESION, type DiaResumen, type Estado, type InfoModelo, type ResultadoImportacion, type ResultadoReentreno } from '../servicios/api';
 import { DIAS_C, dsem, fmt, isoHoy, sumar } from '../motor';
 
 const fechaEs = (s: string | null) => (s ? s.split('-').reverse().join('-') : '—');
 
-export default function Datos() {
+export default function Datos({ onModeloNuevo }: { onModeloNuevo: () => void }) {
   const [estado, setEstado] = useState<Estado | null>(null);
   const [dias, setDias] = useState<DiaResumen[]>([]);
   const [ficheros, setFicheros] = useState<File[]>([]);
   const [subiendo, setSubiendo] = useState(false);
   const [resultado, setResultado] = useState<ResultadoImportacion[] | null>(null);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState<InfoModelo | null>(null);
+  const [entrenando, setEntrenando] = useState(false);
+  const [reentreno, setReentreno] = useState<ResultadoReentreno | null>(null);
+  const [errorModelo, setErrorModelo] = useState('');
 
   const recargar = useCallback(async () => {
     try {
@@ -18,12 +22,26 @@ export default function Datos() {
       setEstado(e);
       const hasta = e.reservas.hasta ?? e.turnos.hasta ?? isoHoy();
       setDias((await api.dias(sumar(hasta, -29), hasta)).reverse());
+      setInfo(await api.modeloInfo().catch(() => null));
       setError('');
     } catch (e) {
       setError((e as Error).message);
     }
   }, []);
   useEffect(() => { recargar(); }, [recargar]);
+
+  const reentrenar = async () => {
+    setEntrenando(true); setReentreno(null); setErrorModelo('');
+    try {
+      const r = await api.reentrenar();
+      setReentreno(r);
+      if (r.aplicado) { setInfo(r.despues); onModeloNuevo(); }
+    } catch (e) {
+      setErrorModelo((e as Error).message);
+    } finally {
+      setEntrenando(false);
+    }
+  };
 
   const subir = async () => {
     setSubiendo(true); setResultado(null);
@@ -33,9 +51,11 @@ export default function Datos() {
       await recargar();
     } catch (e) {
       setError((e as Error).message);
+      return;
     } finally {
       setSubiendo(false);
     }
+    await reentrenar(); // con datos nuevos, el modelo se reentrena solo
   };
 
   if (error === SIN_BACKEND)
@@ -89,10 +109,40 @@ export default function Datos() {
           )}
           <div className="nota" style={{ marginTop: 14 }}>
             "Vinieron" cuenta las reservas sentadas, llegadas o confirmadas, sin eventos de 50 personas o más.
-            Estos datos servirán para reentrenar el modelo en un paso posterior.
+            Con estos datos se reentrena el modelo.
           </div>
         </section>
       </div>
+      <section className="card semana">
+        <div className="cab">
+          <h2 style={{ margin: 0 }}>Modelo de previsión</h2>
+          <button onClick={reentrenar} disabled={entrenando}>{entrenando ? 'Reentrenando…' : 'Reentrenar ahora'}</button>
+        </div>
+        {info && (
+          <div className="turnos">
+            <div className="turno"><div className="t">Aprendido hasta</div><div className="v">{fechaEs(info.datos_hasta)}</div>
+              <div className="d">generado el {fechaEs(info.generado)} · {fmt(info.dias)} días de histórico</div></div>
+            <div className="turno"><div className="t">Error medio sin reservas</div><div className="v">±{Math.round(info.error_sin)}</div>
+              <div className="d">personas/día (media {info.media_test}), últimos 6 meses</div></div>
+          </div>
+        )}
+        {entrenando && <div className="nota" style={{ marginTop: 12 }}>Reentrenando con todos los datos guardados. Tarda unos segundos…</div>}
+        {reentreno && (
+          <div className={reentreno.aplicado ? 'chips' : 'aviso'}>
+            {reentreno.aplicado ? (
+              <span className="chip">✓ Modelo actualizado: ahora aprende hasta el {fechaEs(reentreno.despues.datos_hasta)}.
+                Error sin reservas ±{Math.round(reentreno.antes.error_sin)} → ±{Math.round(reentreno.despues.error_sin)}</span>
+            ) : (
+              `El modelo nuevo se equivocaba más (±${Math.round(reentreno.despues.error_sin)} frente a ±${Math.round(reentreno.antes.error_sin)}), así que se mantiene el actual.`
+            )}
+          </div>
+        )}
+        {errorModelo && <div className="aviso">{errorModelo === SIN_SESION ? 'La sesión ha caducado. Recarga la página y vuelve a entrar.' : errorModelo}</div>}
+        <div className="nota" style={{ marginTop: 12 }}>
+          Cada vez que importas CSV, el modelo se reentrena solo con todo lo guardado. Para medir el error se entrena primero sin los últimos 6 meses y se compara con lo que vino de verdad.
+          Si el modelo nuevo es peor que el actual, se mantiene el actual.
+        </div>
+      </section>
       {dias.length > 0 && (
         <section className="card semana">
           <h2>Últimos 30 días con datos</h2>

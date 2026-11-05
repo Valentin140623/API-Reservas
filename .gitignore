@@ -8,3 +8,4 @@ backend/datos.db
 __pycache__/
 .pytest_cache/
 backend/.clave
+backend/modelos/r*.json

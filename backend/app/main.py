@@ -1,4 +1,5 @@
 """API de Previsión de comensales.  Arrancar:  uvicorn app.main:app --reload"""
+import json
 import os
 import time
 from collections import defaultdict
@@ -12,6 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .db import Base, engine, obtener_sesion
+from .entrenar import ErrorEntrenamiento, entrenar, guardar
 from .importar import ErrorImportacion, importar_csv
 from .modelos import Reserva, Restaurante, TurnoDia, Usuario
 from .resumen import resumen
@@ -125,7 +127,7 @@ def modelo(u: Usuario = Depends(usuario_actual), sesion: Session = Depends(obten
     f = (CARPETA_MODELOS / Path(r.modelo).name)
     if not f.exists():
         raise HTTPException(404, "Este restaurante todavía no tiene modelo entrenado.")
-    return FileResponse(f, media_type="application/json")
+    return FileResponse(f, media_type="application/json", headers={"Cache-Control": "no-store"})
 
 
 @app.post("/api/importar")
@@ -155,3 +157,45 @@ def estado(u: Usuario = Depends(usuario_actual), sesion: Session = Depends(obten
 @app.get("/api/dias")
 def dias(desde: date | None = None, hasta: date | None = None, u: Usuario = Depends(usuario_actual), sesion: Session = Depends(obtener_sesion)):
     return [d.__dict__ for d in resumen(sesion, desde, hasta, restaurante_id=u.restaurante_id)]
+
+
+# ---------- modelo: información y reentrenamiento ----------
+# Si el modelo nuevo se equivoca más de un 15 % que el actual, no se cambia.
+TOLERANCIA = 1.15
+
+
+def _cargar_modelo(r: Restaurante) -> dict | None:
+    f = CARPETA_MODELOS / Path(r.modelo).name
+    return json.loads(f.read_text("utf-8")) if f.exists() else None
+
+
+def _resumen_modelo(m: dict) -> dict:
+    return {k: m[k] for k in ("generado", "datos_hasta", "error_sin", "media_test", "error_res")} | {
+        "dias": len(m["historico"])}
+
+
+@app.get("/api/modelo/info")
+def modelo_info(u: Usuario = Depends(usuario_actual), sesion: Session = Depends(obtener_sesion)):
+    m = _cargar_modelo(sesion.get(Restaurante, u.restaurante_id))
+    if not m:
+        raise HTTPException(404, "Este restaurante todavía no tiene modelo entrenado.")
+    return _resumen_modelo(m)
+
+
+@app.post("/api/reentrenar")
+def reentrenar(u: Usuario = Depends(usuario_actual), sesion: Session = Depends(obtener_sesion)):
+    r = sesion.get(Restaurante, u.restaurante_id)
+    actual = _cargar_modelo(r)
+    if not actual:
+        raise HTTPException(400, "Hace falta un modelo de partida (con el calendario y los festivos).")
+    try:
+        nuevo = entrenar(sesion, actual, restaurante_id=r.id)
+    except ErrorEntrenamiento as e:
+        raise HTTPException(400, str(e))
+    aplicado = nuevo["error_sin"] <= actual["error_sin"] * TOLERANCIA
+    if aplicado:
+        nombre = f"r{r.id}-{nuevo['generado']}-{int(time.time())}.json"
+        guardar(nuevo, CARPETA_MODELOS / nombre)  # los modelos anteriores se conservan
+        r.modelo = nombre
+        sesion.commit()
+    return {"aplicado": aplicado, "antes": _resumen_modelo(actual), "despues": _resumen_modelo(nuevo)}

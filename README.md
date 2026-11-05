@@ -44,6 +44,7 @@ backend/app/importar.py    Lectura de los CSV de CoverManager
 backend/app/resumen.py     Resumen diario (cuántos vinieron por turno, reservadas, eventos, cerrado)
 backend/app/main.py        API: login, modelo, importar, estado, días
 backend/app/seguridad.py   Contraseñas (scrypt) y cookie de sesión firmada
+backend/app/entrenar.py    Reentrenamiento del modelo (LightGBM)
 backend/datos.db           Base de datos local (SQLite; no se sube a GitHub)
 scripts/                   Extraer el modelo del HTML y generar los casos de prueba
 original/                  HTML original, como referencia
@@ -88,6 +89,19 @@ cd backend
 
 Con los CSV de restaurante coinciden el 98 % de los días en "vinieron" y el 99,9 % en "reservadas".
 
+## Reentrenar el modelo
+
+Cada vez que importas CSV en la pestaña **Datos**, el modelo se reentrena solo (tarda unos segundos);
+también hay un botón **Reentrenar ahora**. Lo hace `backend/app/entrenar.py`:
+
+- 4 modelos LightGBM, como el original: comida y cena, con y sin reservas ya apuntadas.
+- El error se mide entrenando sin los últimos 6 meses y comparando con lo que vino de verdad.
+- Si el modelo nuevo se equivoca más de un 15 % que el actual, se mantiene el actual.
+- Cada modelo se guarda como `backend/modelos/r<restaurante>-<fecha>-<n>.json` y los anteriores se conservan.
+
+Con los CSV de restaurante el error queda igual que el del modelo original (±26 personas/día sin reservas,
+±15 con reservas a 1 día).
+
 ## Desplegar
 
 La web es estática: cualquier hosting sirve (**Vercel** o **Netlify**: comando de build `npm run build`,
@@ -103,6 +117,6 @@ basta con poner la variable `DATABASE_URL`.
 2. **Datos reales del día a día** ✅ — backend (Python + FastAPI + SQLite/PostgreSQL) que importa
    los CSV de CoverManager y calcula el resumen diario.
 3. **Cuentas y acceso** ✅ — inicio de sesión; cada usuario solo ve su restaurante.
-4. **Reentrenamiento automático** — el modelo LightGBM se reentrena solo con los datos nuevos.
+4. **Reentrenamiento automático** ✅ — el modelo LightGBM se reentrena solo con los datos nuevos.
 5. **Multi-restaurante y comercialización** — alta de nuevos locales (ubicación, festivos),
    planes de pago (Stripe), integración con programas de reservas.
