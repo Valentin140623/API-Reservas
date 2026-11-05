@@ -14,3 +14,4 @@ backend/modelos/*
 !backend/modelos/demo.json
 original/
 *.csv
+*.tsbuildinfo

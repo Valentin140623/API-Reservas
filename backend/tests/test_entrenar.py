@@ -51,7 +51,7 @@ def test_api_reentrenar(tmp_path, monkeypatch):
     Base.metadata.create_all(engine)
     shutil.copy(CARPETA_MODELOS / "demo.json", tmp_path / "demo.json")
     monkeypatch.setattr(main, "CARPETA_MODELOS", tmp_path)
-    monkeypatch.setattr(main, "TOLERANCIA", 100)  # con datos sintéticos el error no es comparable
+    monkeypatch.setattr(main, "TOLERANCIA", 0.01)  # aunque se equivoque más: el de demostración siempre se sustituye
     c = TestClient(main.app)
     assert c.post("/api/reentrenar").status_code == 401
     c.post("/api/registro", json={"email": "a@a.es", "contrasena": "12345678"})

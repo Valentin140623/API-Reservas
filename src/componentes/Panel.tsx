@@ -6,6 +6,7 @@ import Consulta from './Consulta';
 import Resultado from './Resultado';
 import ProximosDias from './ProximosDias';
 import InfoModelo from './InfoModelo';
+import Cabecera, { Pestanas } from './Cabecera';
 
 export interface Restaurante { nombre: string; lat: number; lon: number }
 
@@ -15,7 +16,7 @@ interface Props {
   /** Si no se pasa, se usa el que venga dentro del modelo. */
   restaurante?: Restaurante;
   /** Segunda pestaña ("Datos" con servidor, "Mi modelo" sin servidor). */
-  extra: { etiqueta: string; contenido: (recargar: () => void) => ReactNode };
+  extra: { etiqueta: string; icono: 'datos' | 'modelo'; contenido: (recargar: () => void) => ReactNode };
   salir?: { email: string; onSalir: () => void };
   onError?: (e: Error) => boolean;
 }
@@ -49,20 +50,19 @@ export default function Panel({ cargar, restaurante, extra, salir, onError }: Pr
   useEffect(() => { cargarTiempo(rest.lat, rest.lon).then(setTiempo); }, [rest.lat, rest.lon]);
   useEffect(() => { guardar(consulta); }, [consulta]);
 
+  const cambiar = (p: 'prevision' | 'extra') => { setPestana(p); window.scrollTo({ top: 0 }); };
   const irA = (f: string) => { setFecha(f); setRc(''); setRn(''); setConsulta({ f, rc: '', rn: '' }); };
 
   return (
     <>
-      <header><div className="wrap">
-        <h1>Previsión de reservas</h1>
-        <p>{rest.nombre} · personas por día, sin contar eventos</p>
-        <nav className="pestanas">
-          <button className={pestana === 'prevision' ? 'activa' : ''} onClick={() => setPestana('prevision')}>Previsión</button>
-          <button className={pestana === 'extra' ? 'activa' : ''} onClick={() => setPestana('extra')}>{extra.etiqueta}</button>
-          {salir && <button onClick={salir.onSalir} title={salir.email}>Salir</button>}
-        </nav>
-      </div></header>
-      <main><div className="wrap">
+      <Cabecera subtitulo={`${rest.nombre} · personas por día, sin contar eventos`}>
+        <Pestanas
+          opciones={[{ id: 'prevision', etiqueta: 'Previsión', icono: 'prevision' }, { id: 'extra', etiqueta: extra.etiqueta, icono: extra.icono }]}
+          activa={pestana} onCambio={cambiar}
+        />
+        {salir && <button className="salir" onClick={salir.onSalir} title={salir.email}>Salir</button>}
+      </Cabecera>
+      <main><div className="wrap vista" key={pestana}>
         {pestana === 'extra' && extra.contenido(recargar)}
         {pestana === 'prevision' && datos?.demo && (
           <div className="aviso demo">

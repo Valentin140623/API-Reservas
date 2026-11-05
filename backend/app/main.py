@@ -216,6 +216,7 @@ def dias(desde: date | None = None, hasta: date | None = None, u: Usuario = Depe
 
 # ---------- modelo: información y reentrenamiento ----------
 # Si el modelo nuevo se equivoca más de un 15 % que el actual, no se cambia.
+# El de demostración (datos inventados) siempre se sustituye por el entrenado con datos reales.
 TOLERANCIA = 1.15
 
 
@@ -247,7 +248,7 @@ def reentrenar(u: Usuario = Depends(usuario_actual), sesion: Session = Depends(o
         nuevo = entrenar(sesion, actual, restaurante_id=r.id)
     except ErrorEntrenamiento as e:
         raise HTTPException(400, str(e))
-    aplicado = nuevo["error_sin"] <= actual["error_sin"] * TOLERANCIA
+    aplicado = bool(actual.get("demo")) or nuevo["error_sin"] <= actual["error_sin"] * TOLERANCIA
     if aplicado:
         sesion.add(ModeloEntrenado(restaurante_id=r.id, creado=datetime.now(),
                                    contenido=json.dumps(nuevo, separators=(",", ":"))))

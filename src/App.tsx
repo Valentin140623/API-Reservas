@@ -4,6 +4,7 @@ import type { DatosModelo } from './motor';
 import { MODO_NAVEGADOR } from './modo';
 import { leerModeloGuardado } from './servicios/almacen';
 import Panel from './componentes/Panel';
+import Cabecera from './componentes/Cabecera';
 import Datos from './componentes/Datos';
 import Entrar from './componentes/Entrar';
 import SinBackend from './componentes/SinBackend';
@@ -23,7 +24,7 @@ function AppNavegador() {
     if (!r.ok) throw new Error(`Error ${r.status}`);
     return r.json();
   }, []);
-  return <Panel cargar={cargar} extra={{ etiqueta: 'Mi modelo', contenido: recargar => <MiModelo onCambio={recargar} /> }} />;
+  return <Panel cargar={cargar} extra={{ etiqueta: 'Mi modelo', icono: 'modelo', contenido: recargar => <MiModelo onCambio={recargar} /> }} />;
 }
 
 type Acceso = 'comprobando' | 'fuera' | 'dentro' | 'sin-backend';
@@ -54,15 +55,12 @@ function AppServidor() {
         restaurante={yo.restaurante}
         onError={onError}
         salir={{ email: yo.email, onSalir: salir }}
-        extra={{ etiqueta: 'Datos', contenido: recargar => <Datos onModeloNuevo={recargar} restaurante={yo.restaurante} /> }}
+        extra={{ etiqueta: 'Datos', icono: 'datos', contenido: recargar => <Datos onModeloNuevo={recargar} restaurante={yo.restaurante} /> }}
       />
     );
   return (
     <>
-      <header><div className="wrap">
-        <h1>Previsión de reservas</h1>
-        <p>Previsión de comensales</p>
-      </div></header>
+      <Cabecera subtitulo="Personas por día, a comida y a cena" />
       <main><div className="wrap">
         {acceso === 'comprobando' && <div className="cargando">Cargando…</div>}
         {acceso === 'sin-backend' && <SinBackend onReintentar={comprobar} />}

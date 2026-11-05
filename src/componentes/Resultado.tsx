@@ -63,7 +63,7 @@ export default function Resultado({ datos, hoy, consulta, tiempo }: Props) {
 
   return (
     <section className="card resultado" aria-live="polite">{cab}
-      <div className="total"><span className="n">{fmt(total)}</span><span className="u">personas</span></div>
+      <div className="total"><span className="n" key={total}>{fmt(total)}</span><span className="u">personas</span></div>
       <div className="margen">Margen habitual: ±{Math.round(r.margen)} personas{r.conRes ? ' en las nuevas' : ''}</div>
       {r.conRes ? (
         <>
