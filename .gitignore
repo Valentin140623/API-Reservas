@@ -15,3 +15,4 @@ backend/modelos/*
 original/
 *.csv
 *.tsbuildinfo
+/modelo.json
